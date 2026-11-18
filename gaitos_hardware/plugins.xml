@@ -1,0 +1,9 @@
+<!--
+  Copyright 2026 Juan S. Cely G.
+  Licensed under the Apache License, Version 2.0
+-->
+<library path="gaitos_hardware">
+  <class name="gaitos_hardware/FakeHardware" type="gaitos_hardware::FakeHardware" base_class_type="gaitos::HardwareInterface">
+    <description>Robot without physics: fixed base, joints as driven unit inertias, simulated time</description>
+  </class>
+</library>

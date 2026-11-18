@@ -1,0 +1,18 @@
+<!--
+  Copyright 2026 Juan S. Cely G.
+  Licensed under the Apache License, Version 2.0
+-->
+<library path="gaitos_sensors">
+  <class name="gaitos_sensors/ImuPassthrough" type="gaitos_sensors::ImuPassthrough" base_class_type="gaitos::ImuSensorBase">
+    <description>IMU with orientation: mounting rotation, gyro bias and low pass</description>
+  </class>
+  <class name="gaitos_sensors/ComplementaryImu" type="gaitos_sensors::ComplementaryImu" base_class_type="gaitos::ImuSensorBase">
+    <description>Orientation from gyro and accelerometer (Mahony)</description>
+  </class>
+  <class name="gaitos_sensors/ForceThresholdContact" type="gaitos_sensors::ForceThresholdContact" base_class_type="gaitos::ContactSensorBase">
+    <description>Foot contact from force sensors with hysteresis</description>
+  </class>
+  <class name="gaitos_sensors/TorqueContact" type="gaitos_sensors::TorqueContact" base_class_type="gaitos::ContactSensorBase">
+    <description>Foot contact from the joint torques through the leg jacobian</description>
+  </class>
+</library>

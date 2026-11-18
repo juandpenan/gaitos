@@ -1,0 +1,25 @@
+# Real R1 through unitree_sdk2 (low level, unitree_hg IDL).
+/**:
+  ros__parameters:
+    hardware:
+      plugin: gaitos_unitree/UnitreeHgHardware
+      network_interface: eth0
+      domain_id: 0
+      release_sport_mode: true
+      motor_index: {left_hip_pitch_joint: 0, left_hip_roll_joint: 1, left_hip_yaw_joint: 2, left_knee_joint: 3,
+        left_ankle_pitch_joint: 4, left_ankle_roll_joint: 5, right_hip_pitch_joint: 6, right_hip_roll_joint: 7,
+        right_hip_yaw_joint: 8, right_knee_joint: 9, right_ankle_pitch_joint: 10, right_ankle_roll_joint: 11,
+        waist_roll_joint: 12, waist_yaw_joint: 13, left_shoulder_pitch_joint: 15, left_shoulder_roll_joint: 16,
+        left_shoulder_yaw_joint: 17, left_elbow_joint: 18, left_wrist_roll_joint: 19, right_shoulder_pitch_joint: 22,
+        right_shoulder_roll_joint: 23, right_shoulder_yaw_joint: 24, right_elbow_joint: 25, right_wrist_roll_joint: 26,
+        head_pitch_joint: 29, head_yaw_joint: 30}
+    real_time: {enabled: true}
+    safety: {gain_ramp_time: 1.5, watchdog_timeout: 0.1}
+    teleop:
+      enabled: true
+      estop: L2+B
+      modes: [stand_up, squat, balance_stand, locomotion_lipm]
+      twist_scale: [0.15, 0.0, 0.3]
+      deadzone: 0.1
+      timeout: 0.3
+      buttons: [L2+A, L2+X, START, R2+A]

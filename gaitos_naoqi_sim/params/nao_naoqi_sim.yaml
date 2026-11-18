@@ -1,0 +1,20 @@
+# The NAO seen by a program written for the real robot through naoqi_driver, in simulation:
+# gaitos behind the naoqi_driver interface. Added to the simulator files
+# (gaitos_mujoco nao_mujoco.yaml or gaitos_gazebo nao_gazebo.yaml).
+/**:
+  ros__parameters:
+    # The robot state is published by the emulator (/joint_states, odom -> base_link) and a
+    # robot_state_publisher at the root namespace, as naoqi_driver does
+    publish_tf: false
+    publish: {joint_states: false, odometry: false}
+    extensions:
+      naoqi:
+        plugin: gaitos_naoqi_sim/NaoqiDriverEmulator
+        frames: {odom: odom, base: base_link, footprint: base_footprint}
+        # ALMotion: move / moveTo while standing (from stand_init the stance mode is entered)
+        walking_modes: [balance_stand, locomotion]
+        stand_modes: [stand_init, stand_zero]
+        stand_mode: balance_stand
+        walk_mode: locomotion
+        default_speed: 0.1          # joint_angles with speed 0: fraction of the max speed
+        rates: {joint_states: 50.0, odom: 15.0, imu: 10.0}

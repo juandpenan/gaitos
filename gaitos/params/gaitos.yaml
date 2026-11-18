@@ -1,0 +1,27 @@
+# gaitos: parameters shared by every robot (ROS 2 parameters of the gaitos node).
+# Launch files load, in order: this file, the robot file
+# (gaitos_description/robots/<robot>_description/config/<robot>.yaml) and the backend file.
+/**:
+  ros__parameters:
+    frequency: 500.0
+    real_time_factor: 1.0
+    max_hardware_failures: 10
+    real_time: {enabled: false, priority: 80, lock_memory: true, cpu: -1, required: false}
+    imu: {plugin: gaitos_sensors/ImuPassthrough}
+    estimator:
+      plugin: gaitos_estimators/KalmanEstimator
+      flat_ground: true
+      process_noise: {position: 0.002, velocity: 0.05, foot: 0.002, foot_swing: 100.0}
+      measurement_noise: {foot_position: 0.005, foot_velocity: 0.05, foot_height: 0.01}
+    controllers:
+      joint: {plugin: gaitos_controllers/JointPdController}
+    dry_run: false
+    initial_mode: damp
+    safety:
+      safe_mode: damp
+      max_tilt: 1.0
+      limits: {enabled: true, position_margin: 0.1, velocity_scale: 1.5, torque_scale: 1.5, cycles: 3}
+      gain_ramp_time: 0.0
+      ramp_from: [damp, zero_torque]
+      watchdog_timeout: 0.0
+    teleop: {enabled: false}

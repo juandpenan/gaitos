@@ -1,0 +1,8 @@
+<library path="gaitos_unitree_sim">
+  <class name="gaitos_unitree_sim/UnitreeHgEmulator" type="gaitos_unitree_sim::UnitreeHgEmulator" base_class_type="gaitos::NodeExtension">
+    <description>DDS interface of a Unitree humanoid (R1, unitree_hg) in front of a simulated gaitos</description>
+  </class>
+  <class name="gaitos_unitree_sim/UnitreeGoEmulator" type="gaitos_unitree_sim::UnitreeGoEmulator" base_class_type="gaitos::NodeExtension">
+    <description>DDS interface of a Unitree Go2 (unitree_go, sport service) in front of a simulated gaitos</description>
+  </class>
+</library>

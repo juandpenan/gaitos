@@ -1,0 +1,5 @@
+# Request an operation mode of the robot (names in the `modes` parameters of the node)
+string mode
+---
+bool success
+string message

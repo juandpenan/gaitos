@@ -1,0 +1,131 @@
+<?xml version="1.0"?>
+<!--
+  gaitos SRDF of the SoftBank/Aldebaran NAO V5 (URDF from ros-naoqi/nao_robot, BSD).
+  Poses after the NAOqi ALRobotPosture postures (approximate values): stand_init
+  (StandInit), stand_zero (StandZero) and crouch (Crouch). RHipYawPitch mimics LHipYawPitch
+  (a single motor in the real robot).
+-->
+<robot name="nao">
+  <group name="left_leg">
+    <chain base_link="torso" tip_link="l_sole"/>
+  </group>
+  <group name="right_leg">
+    <chain base_link="torso" tip_link="r_sole"/>
+  </group>
+  <group name="legs">
+    <group name="left_leg"/>
+    <group name="right_leg"/>
+  </group>
+  <group name="head">
+    <joint name="HeadYaw"/>
+    <joint name="HeadPitch"/>
+  </group>
+  <group name="left_arm">
+    <joint name="LShoulderPitch"/>
+    <joint name="LShoulderRoll"/>
+    <joint name="LElbowYaw"/>
+    <joint name="LElbowRoll"/>
+    <joint name="LWristYaw"/>
+    <joint name="LHand"/>
+  </group>
+  <group name="right_arm">
+    <joint name="RShoulderPitch"/>
+    <joint name="RShoulderRoll"/>
+    <joint name="RElbowYaw"/>
+    <joint name="RElbowRoll"/>
+    <joint name="RWristYaw"/>
+    <joint name="RHand"/>
+  </group>
+  <group name="all">
+    <group name="head"/>
+    <group name="legs"/>
+    <group name="left_arm"/>
+    <group name="right_arm"/>
+  </group>
+
+  <!-- Named poses -->
+  <group_state name="stand_init" group="all">
+    <joint name="HeadYaw" value="0.0"/>
+    <joint name="HeadPitch" value="0.0"/>
+    <joint name="LHipYawPitch" value="0.0"/>
+    <joint name="LHipRoll" value="0.0"/>
+    <joint name="LHipPitch" value="-0.45"/>
+    <joint name="LKneePitch" value="0.7"/>
+    <joint name="LAnklePitch" value="-0.35"/>
+    <joint name="LAnkleRoll" value="0.0"/>
+    <joint name="RHipRoll" value="0.0"/>
+    <joint name="RHipPitch" value="-0.45"/>
+    <joint name="RKneePitch" value="0.7"/>
+    <joint name="RAnklePitch" value="-0.35"/>
+    <joint name="RAnkleRoll" value="0.0"/>
+    <joint name="LShoulderPitch" value="1.4"/>
+    <joint name="LShoulderRoll" value="0.2"/>
+    <joint name="LElbowYaw" value="-1.4"/>
+    <joint name="LElbowRoll" value="-0.52"/>
+    <joint name="LWristYaw" value="0.0"/>
+    <joint name="LHand" value="0.25"/>
+    <joint name="RShoulderPitch" value="1.4"/>
+    <joint name="RShoulderRoll" value="-0.2"/>
+    <joint name="RElbowYaw" value="1.4"/>
+    <joint name="RElbowRoll" value="0.52"/>
+    <joint name="RWristYaw" value="0.0"/>
+    <joint name="RHand" value="0.25"/>
+  </group_state>
+  <group_state name="stand_zero" group="all">
+    <joint name="HeadYaw" value="0.0"/>
+    <joint name="HeadPitch" value="0.0"/>
+    <joint name="LHipYawPitch" value="0.0"/>
+    <joint name="LHipRoll" value="0.0"/>
+    <joint name="LHipPitch" value="0.0"/>
+    <joint name="LKneePitch" value="0.0"/>
+    <joint name="LAnklePitch" value="0.0"/>
+    <joint name="LAnkleRoll" value="0.0"/>
+    <joint name="RHipRoll" value="0.0"/>
+    <joint name="RHipPitch" value="0.0"/>
+    <joint name="RKneePitch" value="0.0"/>
+    <joint name="RAnklePitch" value="0.0"/>
+    <joint name="RAnkleRoll" value="0.0"/>
+    <joint name="LShoulderPitch" value="1.4"/>
+    <joint name="LShoulderRoll" value="0.2"/>
+    <joint name="LElbowYaw" value="-0.0"/>
+    <joint name="LElbowRoll" value="-0.03"/>
+    <joint name="LWristYaw" value="0.0"/>
+    <joint name="LHand" value="0.25"/>
+    <joint name="RShoulderPitch" value="1.4"/>
+    <joint name="RShoulderRoll" value="-0.2"/>
+    <joint name="RElbowYaw" value="0.0"/>
+    <joint name="RElbowRoll" value="0.03"/>
+    <joint name="RWristYaw" value="0.0"/>
+    <joint name="RHand" value="0.25"/>
+  </group_state>
+  <group_state name="crouch" group="all">
+    <joint name="HeadYaw" value="0.0"/>
+    <joint name="HeadPitch" value="0.0"/>
+    <joint name="LHipYawPitch" value="0.0"/>
+    <joint name="LHipRoll" value="0.0"/>
+    <joint name="LHipPitch" value="-0.87"/>
+    <joint name="LKneePitch" value="2.11"/>
+    <joint name="LAnklePitch" value="-1.18"/>
+    <joint name="LAnkleRoll" value="0.0"/>
+    <joint name="RHipRoll" value="0.0"/>
+    <joint name="RHipPitch" value="-0.87"/>
+    <joint name="RKneePitch" value="2.11"/>
+    <joint name="RAnklePitch" value="-1.18"/>
+    <joint name="RAnkleRoll" value="0.0"/>
+    <joint name="LShoulderPitch" value="0.9"/>
+    <joint name="LShoulderRoll" value="0.1"/>
+    <joint name="LElbowYaw" value="-1.4"/>
+    <joint name="LElbowRoll" value="-0.9"/>
+    <joint name="LWristYaw" value="0.0"/>
+    <joint name="LHand" value="0.25"/>
+    <joint name="RShoulderPitch" value="0.9"/>
+    <joint name="RShoulderRoll" value="-0.1"/>
+    <joint name="RElbowYaw" value="1.4"/>
+    <joint name="RElbowRoll" value="0.9"/>
+    <joint name="RWristYaw" value="0.0"/>
+    <joint name="RHand" value="0.25"/>
+  </group_state>
+
+  <end_effector name="left_foot" parent_link="l_sole" group="left_leg"/>
+  <end_effector name="right_foot" parent_link="r_sole" group="right_leg"/>
+</robot>

@@ -1,0 +1,10 @@
+# GO2 real robot, READ ONLY: gaitos reads rt/lowstate (joints, IMU, feet, remote)
+# and runs everything, but never writes rt/lowcmd and does not release the built-in motion
+# service. Use it to check the joint order and signs, the IMU, the foot sensors and the
+# remote before moving the robot (console: `state`).
+#   ros2 launch ... go2_unitree_readonly.yaml
+/**:
+  ros__parameters:
+    dry_run: true
+    hardware: {release_sport_mode: false}
+    real_time: {enabled: false}

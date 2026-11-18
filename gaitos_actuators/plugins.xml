@@ -1,0 +1,15 @@
+<!--
+  Copyright 2026 Juan S. Cely G.
+  Licensed under the Apache License, Version 2.0
+-->
+<library path="gaitos_actuators">
+  <class name="gaitos_actuators/PdPassthrough" type="gaitos_actuators::PdPassthrough" base_class_type="gaitos::JointActuatorBase">
+    <description>Motor drivers with internal PD (Unitree): q, dq, kp, kd and tau go through, limited</description>
+  </class>
+  <class name="gaitos_actuators/TorquePd" type="gaitos_actuators::TorquePd" base_class_type="gaitos::JointActuatorBase">
+    <description>Torque controlled motors: the PD is computed in the gaitos loop</description>
+  </class>
+  <class name="gaitos_actuators/PositionServo" type="gaitos_actuators::PositionServo" base_class_type="gaitos::JointActuatorBase">
+    <description>Position controlled servos with a stiffness (NAO)</description>
+  </class>
+</library>

@@ -1,0 +1,122 @@
+#!/usr/bin/env python3
+# Copyright 2026 Juan S. Cely G.
+# Licensed under the Apache License, Version 2.0 (see LICENSE)
+"""Make the Gazebo variant of a robot URDF from a small spec (YAML).
+
+    make_gazebo_urdf.py <robot.urdf> <spec.yaml> <robot_gazebo.urdf>
+
+The kinematics and inertias stay those of the robot URDF (gaitos keeps using it); the
+variant only changes what the physics engine needs:
+
+  collisions:            # replaces the collisions of these links (primitive shapes)
+    <link>: [{box: [x, y, z], xyz: [..]}, {sphere: r, xyz: [..]}, {cylinder: [r, l], xyz: [..]}]
+  remove_other_collisions: true   # drop every other collision (meshes are slow and noisy)
+  armature: 0.01         # [kg m^2] added to the inertia of the child link of each moving
+                         # joint, as the rotor inertia of the motors (stabilizes stiff PD)
+  joint_dynamics: {damping: 0.01, friction: 0.1}
+  friction: {<link>: mu} # contact friction (Gazebo <mu1>, <mu2>)
+  remove_gazebo_tags: true        # drop the <gazebo> blocks of the URDF (e.g. Gazebo classic plugins)
+  remove_mimic: true              # drop <mimic>: the gaitos hardware plugins drive those joints
+  remove_visuals: true            # drop every <visual> (a physics only model)
+  unique_names: true              # SDF: a link named like a joint becomes <name>_link
+"""
+import sys
+import xml.etree.ElementTree as ET
+
+import yaml
+
+
+def vec(v):
+    return ' '.join(str(float(x)) for x in v)
+
+
+def main():
+    if len(sys.argv) != 4:
+        sys.exit(__doc__)
+    src, spec_file, dst = sys.argv[1:]
+    spec = yaml.safe_load(open(spec_file)) or {}
+    tree = ET.parse(src)
+    robot = tree.getroot()
+    if spec.get('unique_names', False):
+        joint_names = {j.get('name') for j in robot.findall('joint')}
+        for link in robot.findall('link'):
+            old = link.get('name')
+            if old not in joint_names:
+                continue
+            new = old + '_link'
+            link.set('name', new)
+            for j in robot.findall('joint'):
+                for tag in ('parent', 'child'):
+                    e = j.find(tag)
+                    if e is not None and e.get('link') == old:
+                        e.set('link', new)
+            for g in robot.findall('gazebo'):
+                if g.get('reference') == old:
+                    g.set('reference', new)
+    links = {l.get('name'): l for l in robot.findall('link')}
+
+    if spec.get('remove_gazebo_tags', False):
+        for g in robot.findall('gazebo'):
+            robot.remove(g)
+    if spec.get('remove_mimic', False):
+        for j in robot.findall('joint'):
+            for m in j.findall('mimic'):
+                j.remove(m)
+    if spec.get('remove_visuals', False):
+        for link in links.values():
+            for v in link.findall('visual'):
+                link.remove(v)
+
+    # Collisions
+    replace = spec.get('collisions', {}) or {}
+    for name, link in links.items():
+        if name in replace or spec.get('remove_other_collisions', False):
+            for c in link.findall('collision'):
+                link.remove(c)
+    for name, shapes in replace.items():
+        if name not in links:
+            sys.exit(f'Unknown link {name}')
+        for i, s in enumerate(shapes):
+            c = ET.SubElement(links[name], 'collision', {'name': f'{name}_collision_{i}'})
+            ET.SubElement(c, 'origin', {'xyz': vec(s.get('xyz', [0, 0, 0])), 'rpy': vec(s.get('rpy', [0, 0, 0]))})
+            g = ET.SubElement(c, 'geometry')
+            if 'box' in s:
+                ET.SubElement(g, 'box', {'size': vec(s['box'])})
+            elif 'sphere' in s:
+                ET.SubElement(g, 'sphere', {'radius': str(float(s['sphere']))})
+            elif 'cylinder' in s:
+                ET.SubElement(g, 'cylinder', {'radius': str(float(s['cylinder'][0])), 'length': str(float(s['cylinder'][1]))})
+            else:
+                sys.exit(f'{name}: unknown shape {s}')
+
+    # Rotor inertia and joint dynamics
+    armature = float(spec.get('armature', 0.0))
+    dyn = spec.get('joint_dynamics', {}) or {}
+    for j in robot.findall('joint'):
+        if j.get('type') not in ('revolute', 'continuous', 'prismatic'):
+            continue
+        if dyn:
+            for d in j.findall('dynamics'):
+                j.remove(d)
+            ET.SubElement(j, 'dynamics', {k: str(float(v)) for k, v in dyn.items()})
+        child = links.get(j.find('child').get('link'))
+        inertia = child.find('inertial/inertia') if child is not None else None
+        if armature > 0.0 and inertia is not None:
+            for k in ('ixx', 'iyy', 'izz'):
+                inertia.set(k, str(float(inertia.get(k, 0.0)) + armature))
+
+    # Contact friction
+    for name, mu in (spec.get('friction', {}) or {}).items():
+        g = ET.SubElement(robot, 'gazebo', {'reference': name})
+        ET.SubElement(g, 'mu1').text = str(float(mu))
+        ET.SubElement(g, 'mu2').text = str(float(mu))
+
+    robot.insert(0, ET.Comment(f' Generated by make_gazebo_urdf.py from {src.split("/")[-1]} '
+                               f'and {spec_file.split("/")[-1]}: do not edit '))
+    ET.indent(tree, space='  ')
+    tree.write(dst, encoding='utf-8', xml_declaration=True)
+    print(f'{dst} written')
+
+
+if __name__ == '__main__':
+    main()

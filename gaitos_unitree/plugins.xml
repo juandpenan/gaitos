@@ -1,0 +1,12 @@
+<!--
+  Copyright 2026 Juan S. Cely G.
+  Licensed under the Apache License, Version 2.0
+-->
+<library path="gaitos_unitree">
+  <class name="gaitos_unitree/UnitreeGoHardware" type="gaitos_unitree::UnitreeGoHardware" base_class_type="gaitos::HardwareInterface">
+    <description>Unitree Go2 / Go2W / B2 low level control (unitree_sdk2, unitree_go IDL)</description>
+  </class>
+  <class name="gaitos_unitree/UnitreeHgHardware" type="gaitos_unitree::UnitreeHgHardware" base_class_type="gaitos::HardwareInterface">
+    <description>Unitree R1 / G1 / H1-2 low level control (unitree_sdk2, unitree_hg IDL)</description>
+  </class>
+</library>

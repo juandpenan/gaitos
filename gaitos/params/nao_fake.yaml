@@ -1,0 +1,7 @@
+# NAO without physics: the NAO description works with the same modes and controllers.
+/**:
+  ros__parameters:
+    hardware: {plugin: gaitos_hardware/FakeHardware, period: 0.01, joint_inertia: 0.01, initial_pose: crouch,
+      base_height: 0.33}
+    frequency: 100.0
+    estimator: {plugin: gaitos_estimators/ExternalOdometryEstimator, source: ground_truth}

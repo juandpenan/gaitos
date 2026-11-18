@@ -1,0 +1,39 @@
+# Physics of the NAO in the simulators (scripts/make_gazebo_urdf.py -> urdf/nao_gazebo.urdf, and
+# scripts/make_mjcf.py -> mjcf/nao.xml from it). The URDF collisions are meshes of nao_meshes
+# (not always installed, CC BY-NC-ND 4.0): they become primitive shapes here, so the simulation
+# never needs the meshes.
+remove_gazebo_tags: true   # Gazebo classic plugins of nao_robot
+unique_names: true         # SDF: links LAnklePitch / RAnklePitch are also joint names
+remove_mimic: true         # RHipYawPitch and the fingers follow their master in the hardware plugins
+remove_other_collisions: true
+collisions:
+  # Soles from the FSR frames of the URDF (x -0.030..0.070, at z -0.04511 of the ankle) and the
+  # bumpers (x 0.0876): a thin box with a sphere under each corner
+  l_ankle: &left_sole
+    - {box: [0.16, 0.088, 0.01], xyz: [0.025, 0.006, -0.04011]}
+    - {sphere: 0.005, xyz: [-0.05, -0.034, -0.04011]}
+    - {sphere: 0.005, xyz: [-0.05, 0.046, -0.04011]}
+    - {sphere: 0.005, xyz: [0.1, -0.034, -0.04011]}
+    - {sphere: 0.005, xyz: [0.1, 0.046, -0.04011]}
+  r_ankle:
+    - {box: [0.16, 0.088, 0.01], xyz: [0.025, -0.006, -0.04011]}
+    - {sphere: 0.005, xyz: [-0.05, 0.034, -0.04011]}
+    - {sphere: 0.005, xyz: [-0.05, -0.046, -0.04011]}
+    - {sphere: 0.005, xyz: [0.1, 0.034, -0.04011]}
+    - {sphere: 0.005, xyz: [0.1, -0.046, -0.04011]}
+  torso:
+    - {box: [0.08, 0.12, 0.15], xyz: [-0.01, 0.0, 0.02]}
+  Head:
+    - {sphere: 0.065, xyz: [0.0, 0.0, 0.06]}
+  LThigh: &thigh
+    - {box: [0.07, 0.07, 0.08], xyz: [0.0, 0.0, -0.05]}
+  RThigh: *thigh
+  LTibia: &tibia
+    - {box: [0.07, 0.07, 0.08], xyz: [0.0, 0.0, -0.05]}
+  RTibia: *tibia
+# Rotor inertia through the gears (an estimate: no rotor data in the documentation) and losses
+armature: 0.003
+joint_dynamics: {damping: 0.05, friction: 0.03}
+friction:
+  l_ankle: 1.0
+  r_ankle: 1.0

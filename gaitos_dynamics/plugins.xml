@@ -1,0 +1,12 @@
+<!--
+  Copyright 2026 Juan S. Cely G.
+  Licensed under the Apache License, Version 2.0
+-->
+<library path="gaitos_dynamics">
+  <class name="gaitos_dynamics/ConvexMpcController" type="gaitos_dynamics::ConvexMpcController" base_class_type="gaitos::ControllerBase">
+    <description>Quadruped locomotion: convex MPC of the ground reaction forces + swing leg PD</description>
+  </class>
+  <class name="gaitos_dynamics/LipmZmpController" type="gaitos_dynamics::LipmZmpController" base_class_type="gaitos::ControllerBase">
+    <description>Biped walking: footstep planner + ZMP preview control of the linear inverted pendulum</description>
+  </class>
+</library>

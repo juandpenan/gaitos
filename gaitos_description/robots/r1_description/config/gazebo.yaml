@@ -1,0 +1,20 @@
+# Physics of the R1 in Gazebo (scripts/make_gazebo_urdf.py -> urdf/r1_gazebo.urdf): the
+# contact geometry and motor inertia of the unitree_mujoco model, which the URDF lacks.
+remove_other_collisions: true
+collisions:
+  left_ankle_roll_link: &foot
+    - {box: [0.18, 0.05, 0.015], xyz: [0.04, 0.0, -0.035]}
+    - {sphere: 0.01, xyz: [-0.04, 0.025, -0.045]}
+    - {sphere: 0.01, xyz: [-0.04, -0.025, -0.045]}
+    - {sphere: 0.01, xyz: [0.115, 0.025, -0.045]}
+    - {sphere: 0.01, xyz: [0.115, -0.025, -0.045]}
+  right_ankle_roll_link: *foot
+  waist_yaw_link:
+    - {box: [0.15, 0.14, 0.18], xyz: [-0.02, 0.0, 0.12]}
+  pelvis_link:
+    - {box: [0.12, 0.2, 0.12], xyz: [0.0, 0.0, -0.05]}
+armature: 0.01
+joint_dynamics: {damping: 0.01, friction: 0.1}
+friction:
+  left_ankle_roll_link: 1.0
+  right_ankle_roll_link: 1.0

@@ -1,0 +1,24 @@
+# Go2 in MuJoCo (in process, lockstep), model of unitree_mujoco.
+#   ros2 launch ... go2_mujoco.yaml
+/**:
+  ros__parameters:
+    frequency: 500.0
+    hardware:
+      plugin: gaitos_mujoco/MujocoHardware
+      model: package://gaitos_description/robots/go2_description/mjcf/scene.xml
+      period: 0.002
+      base_body: base_link
+      initial_pose: lie
+      feet:
+        FR:
+          geoms: [FR]
+        FL:
+          geoms: [FL]
+        RR:
+          geoms: [RR]
+        RL:
+          geoms: [RL]
+      ground_truth: true
+    estimator:
+      external:
+        ground_truth: {position: false, velocity: false, yaw: false, align: false}

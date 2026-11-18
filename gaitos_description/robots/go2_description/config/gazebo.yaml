@@ -1,0 +1,6 @@
+# Physics of the Go2 in Gazebo (scripts/make_gazebo_urdf.py -> urdf/go2_gazebo.urdf): the motor
+# inertia and joint losses of the unitree_mujoco model, which the URDF lacks. Without them the
+# torque control of the convex MPC (stance legs kp 0) is unstable. The URDF collisions are
+# already primitive shapes and stay.
+armature: 0.01
+joint_dynamics: {damping: 0.1, friction: 0.2}

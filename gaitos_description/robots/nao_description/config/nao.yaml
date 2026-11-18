@@ -1,0 +1,88 @@
+# SoftBank / Aldebaran NAO V5: an example of a robot added to gaitos with its URDF and an
+# SRDF. Its position controlled servos use the PositionServo actuator; connecting the real
+# robot needs a backend (HardwareInterface plugin) for NAOqi / LoLA.
+/**:
+  ros__parameters:
+    robot:
+      name: nao
+      urdf: package://gaitos_description/robots/nao_description/urdf/nao.urdf
+      srdf: package://gaitos_description/robots/nao_description/srdf/nao.srdf
+      base_link: torso
+      legs:
+        names: [left, right]
+        groups: [left_leg, right_leg]
+        orientation_ik: [true, true]
+    actuators:
+      servos: {plugin: gaitos_actuators/PositionServo, joints: all, stiffness: 0.8}
+    contacts: {plugin: gaitos_sensors/ForceThresholdContact, on_threshold: 5.0, off_threshold: 2.0}
+    controllers:
+      stance:
+        plugin: gaitos_controllers/StanceController
+        stance_pose: stand_init
+        gains:
+          default: {kp: 1.0, kd: 0.0}
+        max_offset: [0.02, 0.02, 0.04]
+        max_rpy: [0.15, 0.15, 0.3]
+      # Walking (kinematic): alternating steps with the body swaying over the stance foot, the
+      # body velocity measured closing a PI loop. It suits the position controlled servos of
+      # the NAO (the LIPM / ZMP controller needs the torque feedforward the NAO does not have).
+      # Turning uses the yaw of the feet, through the HipYawPitch both legs share.
+      gait:
+        plugin: gaitos_controllers/GaitController
+        stance_pose: stand_init
+        default_gait: walk
+        gaits:
+          walk:
+            offsets: [0.0, 0.5]
+            period: 0.6
+            duty: 0.7
+            step_height: 0.035
+            sway: 0.02
+        max_sway_speed: 0.3
+        attitude_gain: 1.0
+        raibert_gain: 0.02
+        max_velocity: [0.08, 0.04, 0.4]
+        max_acceleration: [0.1, 0.1, 0.4]
+        velocity_feedback:
+          kp: [0.0, 0.0, 0.0]
+          ki: [0.3, 0.3, 0.5]
+          max_integral: [0.05, 0.03, 0.2]
+        gravity_compensation: 0.0
+        gains:
+          stance:
+            default: {kp: 1.0, kd: 0.0}
+          swing:
+            default: {kp: 1.0, kd: 0.0}
+          upper_body:
+            default: {kp: 1.0, kd: 0.0}
+    # Joints that applications move over the controllers (joint_targets, naoqi_driver
+    # /joint_angles): head and arms always, any joint in the posture modes
+    external_joints:
+      groups: [head, left_arm, right_arm]
+      any_joint_modes: [stand_init, stand_zero, crouch]
+    modes:
+      zero_torque: {plugin: gaitos_modes/ZeroTorqueMode}
+      damp: {plugin: gaitos_modes/DampMode}
+      stand_init:
+        plugin: gaitos_modes/PostureMode
+        pose: stand_init
+        duration: 2.0
+        gains:
+          default: {kp: 1.0}
+      crouch:
+        plugin: gaitos_modes/PostureMode
+        pose: crouch
+        duration: 2.0
+        gains:
+          default: {kp: 1.0}
+      balance_stand:
+        plugin: gaitos_modes/BalanceStandMode
+        controller: stance
+        on_twist: locomotion
+        allowed_from: [stand_init, balance_stand, locomotion]
+      locomotion:
+        plugin: gaitos_modes/LocomotionMode
+        controller: gait
+        gait: walk
+        command_timeout: 0.5
+        allowed_from: [balance_stand, stand_init, locomotion]

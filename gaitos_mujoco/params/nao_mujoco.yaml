@@ -1,0 +1,27 @@
+# NAO V6 in MuJoCo (in process, lockstep): the model made by make_mjcf.py from the URDF
+# (primitive collisions, V6 motor limits; it does not need nao_meshes).
+#   ros2 launch gaitos_mujoco sim.launch.py robot:=nao
+/**:
+  ros__parameters:
+    frequency: 100.0          # the NAO motion cycle (DCM / LoLA: 83-100 Hz)
+    hardware:
+      plugin: gaitos_mujoco/MujocoHardware
+      model: package://gaitos_description/robots/nao_description/mjcf/scene.xml
+      period: 0.01
+      base_body: base_link
+      initial_pose: crouch
+      feet:
+        left:
+          bodies: [l_ankle]
+        right:
+          bodies: [r_ankle]
+      hold_gains: {kp: 5.0, kd: 0.1}
+      ground_truth: true
+    # The servos of the robot as a PD per joint (the commanded stiffness 0..1 scales it)
+    actuators:
+      servos: {servo: {kp: 200.0, kd: 1.0}}
+    contacts: {plugin: gaitos_sensors/ForceThresholdContact, on_threshold: 8.0, off_threshold: 4.0}
+    estimator:
+      external:
+        ground_truth: {position: false, velocity: false, yaw: false, align: false}
+    initial_mode: crouch

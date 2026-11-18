@@ -1,0 +1,107 @@
+<?xml version="1.0"?>
+<!--
+  gaitos SRDF of the Unitree Go2 (URDF from unitree_ros, BSD-3-Clause).
+  Leg order and joint order follow the Unitree SDK2 motor order: FR, FL, RR, RL.
+  The group_state elements are the named poses used by the operation modes; the stand and
+  stand_down (lie) poses are the ones of unitree_sdk2/example/go2/go2_stand_example.cpp.
+-->
+<robot name="go2">
+  <group name="FR_leg">
+    <chain base_link="base" tip_link="FR_foot"/>
+  </group>
+  <group name="FL_leg">
+    <chain base_link="base" tip_link="FL_foot"/>
+  </group>
+  <group name="RR_leg">
+    <chain base_link="base" tip_link="RR_foot"/>
+  </group>
+  <group name="RL_leg">
+    <chain base_link="base" tip_link="RL_foot"/>
+  </group>
+  <group name="legs">
+    <group name="FR_leg"/>
+    <group name="FL_leg"/>
+    <group name="RR_leg"/>
+    <group name="RL_leg"/>
+  </group>
+  <group name="all">
+    <group name="legs"/>
+  </group>
+
+  <!-- Named poses -->
+  <group_state name="stand" group="legs">
+    <joint name="FR_hip_joint" value="0.0"/>
+    <joint name="FR_thigh_joint" value="0.67"/>
+    <joint name="FR_calf_joint" value="-1.3"/>
+    <joint name="FL_hip_joint" value="0.0"/>
+    <joint name="FL_thigh_joint" value="0.67"/>
+    <joint name="FL_calf_joint" value="-1.3"/>
+    <joint name="RR_hip_joint" value="0.0"/>
+    <joint name="RR_thigh_joint" value="0.67"/>
+    <joint name="RR_calf_joint" value="-1.3"/>
+    <joint name="RL_hip_joint" value="0.0"/>
+    <joint name="RL_thigh_joint" value="0.67"/>
+    <joint name="RL_calf_joint" value="-1.3"/>
+  </group_state>
+  <group_state name="stand_low" group="legs">
+    <joint name="FR_hip_joint" value="0.0"/>
+    <joint name="FR_thigh_joint" value="0.9"/>
+    <joint name="FR_calf_joint" value="-1.8"/>
+    <joint name="FL_hip_joint" value="0.0"/>
+    <joint name="FL_thigh_joint" value="0.9"/>
+    <joint name="FL_calf_joint" value="-1.8"/>
+    <joint name="RR_hip_joint" value="0.0"/>
+    <joint name="RR_thigh_joint" value="0.9"/>
+    <joint name="RR_calf_joint" value="-1.8"/>
+    <joint name="RL_hip_joint" value="0.0"/>
+    <joint name="RL_thigh_joint" value="0.9"/>
+    <joint name="RL_calf_joint" value="-1.8"/>
+  </group_state>
+  <group_state name="lie" group="legs">
+    <joint name="FR_hip_joint" value="0.0"/>
+    <joint name="FR_thigh_joint" value="1.36"/>
+    <joint name="FR_calf_joint" value="-2.65"/>
+    <joint name="FL_hip_joint" value="0.0"/>
+    <joint name="FL_thigh_joint" value="1.36"/>
+    <joint name="FL_calf_joint" value="-2.65"/>
+    <joint name="RR_hip_joint" value="-0.2"/>
+    <joint name="RR_thigh_joint" value="1.36"/>
+    <joint name="RR_calf_joint" value="-2.65"/>
+    <joint name="RL_hip_joint" value="0.2"/>
+    <joint name="RL_thigh_joint" value="1.36"/>
+    <joint name="RL_calf_joint" value="-2.65"/>
+  </group_state>
+  <group_state name="sit" group="legs">
+    <joint name="FR_hip_joint" value="-0.1"/>
+    <joint name="FR_thigh_joint" value="0.5"/>
+    <joint name="FR_calf_joint" value="-1.0"/>
+    <joint name="FL_hip_joint" value="0.1"/>
+    <joint name="FL_thigh_joint" value="0.5"/>
+    <joint name="FL_calf_joint" value="-1.0"/>
+    <joint name="RR_hip_joint" value="-0.2"/>
+    <joint name="RR_thigh_joint" value="1.36"/>
+    <joint name="RR_calf_joint" value="-2.65"/>
+    <joint name="RL_hip_joint" value="0.2"/>
+    <joint name="RL_thigh_joint" value="1.36"/>
+    <joint name="RL_calf_joint" value="-2.65"/>
+  </group_state>
+  <group_state name="stretch" group="legs">
+    <joint name="FR_hip_joint" value="0.0"/>
+    <joint name="FR_thigh_joint" value="0.0"/>
+    <joint name="FR_calf_joint" value="-1.3"/>
+    <joint name="FL_hip_joint" value="0.0"/>
+    <joint name="FL_thigh_joint" value="0.0"/>
+    <joint name="FL_calf_joint" value="-1.3"/>
+    <joint name="RR_hip_joint" value="0.0"/>
+    <joint name="RR_thigh_joint" value="1.2"/>
+    <joint name="RR_calf_joint" value="-1.5"/>
+    <joint name="RL_hip_joint" value="0.0"/>
+    <joint name="RL_thigh_joint" value="1.2"/>
+    <joint name="RL_calf_joint" value="-1.5"/>
+  </group_state>
+
+  <end_effector name="FR_foot" parent_link="FR_foot" group="FR_leg"/>
+  <end_effector name="FL_foot" parent_link="FL_foot" group="FL_leg"/>
+  <end_effector name="RR_foot" parent_link="RR_foot" group="RR_leg"/>
+  <end_effector name="RL_foot" parent_link="RL_foot" group="RL_leg"/>
+</robot>

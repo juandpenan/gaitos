@@ -1,0 +1,21 @@
+# NAO V6 in Gazebo (gz-sim): urdf/nao_gazebo.urdf (make_gazebo_urdf.py: primitive collisions,
+# V6 motor limits), in the 0.5 ms world. The meshes (nao_meshes) are only looks.
+#   ros2 launch gaitos_gazebo sim.launch.py robot:=nao
+/**:
+  ros__parameters:
+    frequency: 100.0          # the NAO motion cycle (DCM / LoLA: 83-100 Hz)
+    hardware:
+      base_link: base_link
+      initial_pose: crouch
+      ground_truth: true
+      feet:
+        left:
+          links: [l_ankle]
+        right:
+          links: [r_ankle]
+    # The servos of the robot as a PD per joint (the commanded stiffness 0..1 scales it); softer
+    # than in MuJoCo, whose contacts take the stiffer servos (here they make the feet bounce)
+    actuators:
+      servos: {servo: {kp: 60.0, kd: 0.8}}
+    contacts: {plugin: gaitos_sensors/ForceThresholdContact, on_threshold: 8.0, off_threshold: 4.0}
+    initial_mode: crouch

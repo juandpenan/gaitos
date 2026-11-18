@@ -1,0 +1,9 @@
+<!--
+  Copyright 2026 Juan S. Cely G.
+  Licensed under the Apache License, Version 2.0
+-->
+<library path="gaitos_mujoco">
+  <class name="gaitos_mujoco/MujocoHardware" type="gaitos_mujoco::MujocoHardware" base_class_type="gaitos::HardwareInterface">
+    <description>MuJoCo simulation in lockstep, with Unitree-like PD motors, IMU, foot forces and ground truth</description>
+  </class>
+</library>

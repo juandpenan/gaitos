@@ -1,0 +1,15 @@
+<!--
+  Copyright 2026 Juan S. Cely G.
+  Licensed under the Apache License, Version 2.0
+-->
+<library path="gaitos_estimators">
+  <class name="gaitos_estimators/KalmanEstimator" type="gaitos_estimators::KalmanEstimator" base_class_type="gaitos::StateEstimatorBase">
+    <description>Kalman filter of base and feet with IMU, leg kinematics, contacts and external odometries</description>
+  </class>
+  <class name="gaitos_estimators/LegOdometryEstimator" type="gaitos_estimators::LegOdometryEstimator" base_class_type="gaitos::StateEstimatorBase">
+    <description>IMU orientation plus leg kinematics dead reckoning</description>
+  </class>
+  <class name="gaitos_estimators/ExternalOdometryEstimator" type="gaitos_estimators::ExternalOdometryEstimator" base_class_type="gaitos::StateEstimatorBase">
+    <description>Base state from an external odometry source (ground truth, motion capture)</description>
+  </class>
+</library>

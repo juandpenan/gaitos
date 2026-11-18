@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>gaitos</name>
+  <version>0.1.0</version>
+  <description>
+    gaitos: ROS 2 framework for legged robots (Unitree Go2 and R1, extensible to others such
+    as NAO). Metapackage with the common parameters and the gaitos launch file.
+  </description>
+  <maintainer email="juanscelyg@gmail.com">Juan S. Cely G.</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>gaitos_msgs</exec_depend>
+  <exec_depend>gaitos_common</exec_depend>
+  <exec_depend>gaitos_model</exec_depend>
+  <exec_depend>gaitos_core</exec_depend>
+  <exec_depend>gaitos_hardware</exec_depend>
+  <exec_depend>gaitos_actuators</exec_depend>
+  <exec_depend>gaitos_sensors</exec_depend>
+  <exec_depend>gaitos_estimators</exec_depend>
+  <exec_depend>gaitos_controllers</exec_depend>
+  <exec_depend>gaitos_dynamics</exec_depend>
+  <exec_depend>gaitos_modes</exec_depend>
+  <exec_depend>gaitos_system</exec_depend>
+  <exec_depend>gaitos_description</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

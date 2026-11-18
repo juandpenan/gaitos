@@ -1,0 +1,20 @@
+# Real Go2 through unitree_sdk2 (low level). The built-in sport service is released first.
+#   ros2 launch ... go2_unitree.yaml
+# Lift the robot or have it lying before starting; the initial mode is damp.
+/**:
+  ros__parameters:
+    hardware: {plugin: gaitos_unitree/UnitreeGoHardware, network_interface: eth0, domain_id: 0, release_sport_mode: true,
+      sport_odometry: true, foot_force_scale: 1.0}
+    real_time: {enabled: true}
+    safety: {gain_ramp_time: 1.5, watchdog_timeout: 0.1}
+    teleop:
+      enabled: true
+      estop: L2+B
+      modes: [stand_up, stand_down, balance_stand, locomotion, locomotion_mpc, recovery_stand]
+      twist_scale: [0.6, 0.4, 1.2]
+      deadzone: 0.1
+      timeout: 0.3
+      buttons: [L2+A, L2+X, START, R2+A, R2+X, L1+A]
+    estimator:
+      external:
+        unitree_sport: {position: false, velocity: true, velocity_noise: 0.2, align: true}

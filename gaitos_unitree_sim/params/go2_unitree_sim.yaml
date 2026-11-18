@@ -1,0 +1,24 @@
+# The Go2 seen by a program written for the real robot (ROS 2 with the unitree_ros2 messages,
+# the SportClient protocol), in simulation: gaitos behind the DDS interface of the robot.
+# Added to the simulator files (gaitos_mujoco go2_mujoco.yaml or gaitos_gazebo go2_gazebo.yaml).
+/**:
+  ros__parameters:
+    extensions:
+      unitree:
+        plugin: gaitos_unitree_sim/UnitreeGoEmulator
+        # motor_index: none, the model order (FR, FL, RR, RL x hip, thigh, calf) is the motor order
+        leg_order: [FR, FL, RR, RL]
+        # Sport api -> gaitos mode: Damp, BalanceStand, StandUp, StandDown, RecoveryStand, Sit, RiseSit
+        api:
+          ids: [1001, 1002, 1004, 1005, 1006, 1009, 1010]
+          modes: [damp, balance_stand, stand_up, stand_down, recovery_stand, sit, balance_stand]
+        # gaitos mode -> SportModeState.mode (1 balance stand, 3 locomotion, 5 lie down,
+        # 6 joint lock, 7 damping, 8 recovery stand, 10 sit)
+        sport_modes:
+          modes: [damp, zero_torque, stand_up, stand_down, recovery_stand, sit, balance_stand, locomotion, locomotion_mpc]
+          codes: [7, 7, 6, 5, 8, 10, 1, 3, 3]
+        # Move is accepted in these modes (from balance_stand it starts the gait); Euler in pose_modes
+        walking_modes: [balance_stand, locomotion, locomotion_mpc]
+        pose_modes: [balance_stand]
+        move_timeout: 1.0
+        rates: {lowstate: 500.0, lf_lowstate: 20.0, sportmodestate: 200.0, lf_sportmodestate: 20.0}

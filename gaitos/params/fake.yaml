@@ -1,0 +1,6 @@
+# Any robot without physics (gaitos_hardware/FakeHardware): to check a configuration, the
+# modes and the controllers, and to display the robot (gaitos_description display.launch.py).
+/**:
+  ros__parameters:
+    hardware: {plugin: gaitos_hardware/FakeHardware, period: 0.002, base_height: 0.3}
+    estimator: {plugin: gaitos_estimators/ExternalOdometryEstimator, source: ground_truth}

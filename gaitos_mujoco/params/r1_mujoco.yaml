@@ -1,0 +1,20 @@
+# R1 in MuJoCo (in process, lockstep), model of unitree_mujoco. The model has three joints
+# that the URDF does not (waist pitch, wrist pitch and yaw): they are held in place. The
+# head joints are not in the model.
+/**:
+  ros__parameters:
+    frequency: 500.0
+    hardware:
+      plugin: gaitos_mujoco/MujocoHardware
+      model: package://gaitos_description/robots/r1_description/mjcf/scene.xml
+      period: 0.002
+      base_body: pelvis
+      initial_pose: stand
+      feet:
+        left:
+          bodies: [left_ankle_roll_link]
+        right:
+          bodies: [right_ankle_roll_link]
+      hold_gains: {kp: 100.0, kd: 2.0}
+    contacts: {plugin: gaitos_sensors/ForceThresholdContact, on_threshold: 40.0, off_threshold: 20.0}
+    initial_mode: stand_up

@@ -1,0 +1,19 @@
+# Go2 in Gazebo (gz-sim): gaitos runs inside the simulator (GaitosGzSystem plugin).
+#   ros2 launch gaitos_gazebo sim.launch.py robot:=go2
+/**:
+  ros__parameters:
+    frequency: 500.0
+    hardware:
+      base_link: base
+      initial_pose: lie
+      ground_truth: true
+      publish_rate: 50.0
+      feet:
+        FR:
+          links: [FR_foot]
+        FL:
+          links: [FL_foot]
+        RR:
+          links: [RR_foot]
+        RL:
+          links: [RL_foot]

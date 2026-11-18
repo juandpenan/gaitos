@@ -1,0 +1,5 @@
+<library path="gaitos_naoqi_sim">
+  <class name="gaitos_naoqi_sim/NaoqiDriverEmulator" type="gaitos_naoqi_sim::NaoqiDriverEmulator" base_class_type="gaitos::NodeExtension">
+    <description>ROS 2 interface of naoqi_driver in front of a simulated gaitos NAO</description>
+  </class>
+</library>

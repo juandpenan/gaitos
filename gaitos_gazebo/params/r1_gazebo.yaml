@@ -1,0 +1,16 @@
+# R1 in Gazebo (gz-sim), in the 0.5 ms world:
+#   ros2 launch gaitos_gazebo sim.launch.py robot:=r1  (world empty_fine by default)
+/**:
+  ros__parameters:
+    frequency: 500.0
+    hardware:
+      base_link: pelvis_link
+      initial_pose: stand
+      ground_truth: true
+      feet:
+        left:
+          links: [left_ankle_roll_link]
+        right:
+          links: [right_ankle_roll_link]
+    contacts: {plugin: gaitos_sensors/ForceThresholdContact, on_threshold: 40.0, off_threshold: 20.0}
+    initial_mode: stand_up

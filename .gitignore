@@ -1,0 +1,53 @@
+# colcon / CMake build outputs (when building with this folder as the workspace)
+build/
+install/
+log/
+CMakeCache.txt
+CMakeFiles/
+cmake-build-*/
+compile_commands.json
+
+# Downloaded at build time (FetchContent), never versioned:
+# - the Unitree meshes and MuJoCo assets (BSD-3, unitree_ros / unitree_mujoco)
+# - the NAO meshes and textures (CC BY-NC-ND 4.0: they must not be redistributed here)
+gaitos_description/robots/*/meshes/
+gaitos_description/robots/*/texture/
+gaitos_description/robots/*/mjcf/assets/
+gaitos_description/robots/*/mjcf/meshes/
+*.run
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Simulators and tools
+MUJOCO_LOG.TXT
+*.log
+core
+core.*
+*.bag
+*.mcap
+rosbag2_*/
+
+# Editors and IDEs
+.vscode/
+.idea/
+.clangd/
+.cache/
+*.swp
+*.swo
+*~
+\#*\#
+.#*
+
+# Operating systems
+.DS_Store
+Thumbs.db
+
+# Local, private settings
+.env
+*.local.yaml

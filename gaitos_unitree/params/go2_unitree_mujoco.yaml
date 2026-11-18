@@ -1,0 +1,8 @@
+# Go2 in the unitree_mujoco simulator (C++ "simulate" or Python), through unitree_sdk2/DDS:
+# the same code path as the real robot. Set robot: go2, domain_id: 1, interface: lo in the
+# simulator config.yaml.
+/**:
+  ros__parameters:
+    hardware: {network_interface: lo, domain_id: 1, release_sport_mode: false, sport_odometry: false,
+      foot_force_scale: 1.0}
+    real_time: {enabled: false}

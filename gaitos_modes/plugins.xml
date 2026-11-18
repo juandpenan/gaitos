@@ -1,0 +1,21 @@
+<!--
+  Copyright 2026 Juan S. Cely G.
+  Licensed under the Apache License, Version 2.0
+-->
+<library path="gaitos_modes">
+  <class name="gaitos_modes/ZeroTorqueMode" type="gaitos_modes::ZeroTorqueMode" base_class_type="gaitos::OperationModeBase">
+    <description>Every joint passive</description>
+  </class>
+  <class name="gaitos_modes/DampMode" type="gaitos_modes::DampMode" base_class_type="gaitos::OperationModeBase">
+    <description>Joints damped without stiffness (safe mode)</description>
+  </class>
+  <class name="gaitos_modes/PostureMode" type="gaitos_modes::PostureMode" base_class_type="gaitos::OperationModeBase">
+    <description>Interpolates to a sequence of SRDF poses (stand up, stand down, sit...)</description>
+  </class>
+  <class name="gaitos_modes/BalanceStandMode" type="gaitos_modes::BalanceStandMode" base_class_type="gaitos::OperationModeBase">
+    <description>Standing, body posture from the pose goal</description>
+  </class>
+  <class name="gaitos_modes/LocomotionMode" type="gaitos_modes::LocomotionMode" base_class_type="gaitos::OperationModeBase">
+    <description>Walking with a body twist or to a pose goal relative to the body</description>
+  </class>
+</library>

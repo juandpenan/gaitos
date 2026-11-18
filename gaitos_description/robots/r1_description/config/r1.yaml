@@ -1,0 +1,149 @@
+# Unitree R1 (humanoid, 26 joints). Joint order: R1 joint index of the SDK2 examples.
+/**:
+  ros__parameters:
+    robot:
+      name: r1
+      urdf: package://gaitos_description/robots/r1_description/urdf/r1.urdf
+      srdf: package://gaitos_description/robots/r1_description/srdf/r1.srdf
+      base_link: pelvis_link
+      legs:
+        names: [left, right]
+        groups: [left_leg, right_leg]
+        orientation_ik: [true, true]
+    actuators:
+      motors: {plugin: gaitos_actuators/PdPassthrough, joints: all, position_margin: 0.02}
+    contacts: {plugin: gaitos_sensors/TorqueContact, on_threshold: 60.0, off_threshold: 30.0}
+    estimator: {plugin: gaitos_estimators/KalmanEstimator, flat_ground: true, ground_height: 0.056}
+    controllers:
+      stance:
+        plugin: gaitos_controllers/StanceController
+        stance_pose: stand
+        gains:
+          legs: {kp: 200.0, kd: 3.0}
+          waist: {kp: 300.0, kd: 5.0}
+          arms: {kp: 100.0, kd: 2.0}
+          left_wrist_roll_joint: {kp: 50.0, kd: 2.0}
+          right_wrist_roll_joint: {kp: 50.0, kd: 2.0}
+          head_pitch_joint: {kp: 50.0, kd: 2.0}
+          head_yaw_joint: {kp: 10.0, kd: 0.1}
+        gravity_compensation: 0.0
+        max_offset: [0.03, 0.03, 0.12]
+        max_rpy: [0.2, 0.25, 0.3]
+      gait:
+        plugin: gaitos_controllers/GaitController
+        stance_pose: stand
+        default_gait: walk
+        gaits:
+          walk:
+            offsets: [0.0, 0.5]
+            period: 1.0
+            duty: 0.6
+            step_height: 0.03
+            sway: 0.08
+        max_sway_speed: 0.4
+        attitude_gain: 0.5
+        raibert_gain: 0.03
+        max_velocity: [0.1, 0.05, 0.3]
+        max_acceleration: [0.1, 0.1, 0.3]
+        velocity_feedback:
+          kp: [0.0, 0.0, 0.0]
+          ki: [0.5, 0.5, 1.0]
+          max_integral: [0.1, 0.1, 0.3]
+        gravity_compensation: 0.0
+        gains:
+          stance:
+            legs: {kp: 200.0, kd: 3.0}
+            waist: {kp: 300.0, kd: 5.0}
+            arms: {kp: 100.0, kd: 2.0}
+            left_wrist_roll_joint: {kp: 50.0, kd: 2.0}
+            right_wrist_roll_joint: {kp: 50.0, kd: 2.0}
+            head_pitch_joint: {kp: 50.0, kd: 2.0}
+            head_yaw_joint: {kp: 10.0, kd: 0.1}
+          swing:
+            legs: {kp: 200.0, kd: 3.0}
+            waist: {kp: 300.0, kd: 5.0}
+            arms: {kp: 100.0, kd: 2.0}
+            left_wrist_roll_joint: {kp: 50.0, kd: 2.0}
+            right_wrist_roll_joint: {kp: 50.0, kd: 2.0}
+            head_pitch_joint: {kp: 50.0, kd: 2.0}
+            head_yaw_joint: {kp: 10.0, kd: 0.1}
+          upper_body:
+            legs: {kp: 200.0, kd: 3.0}
+            waist: {kp: 300.0, kd: 5.0}
+            arms: {kp: 100.0, kd: 2.0}
+            left_wrist_roll_joint: {kp: 50.0, kd: 2.0}
+            right_wrist_roll_joint: {kp: 50.0, kd: 2.0}
+            head_pitch_joint: {kp: 50.0, kd: 2.0}
+            head_yaw_joint: {kp: 10.0, kd: 0.1}
+      lipm:
+        plugin: gaitos_dynamics/LipmZmpController
+        stance_pose: stand
+        dt: 0.002
+        foot_center: [0.04, 0.0, -0.055]
+        step_time: 0.6
+        double_support: 0.25
+        step_height: 0.04
+        start_delay: 1.5
+        preview_time: 1.6
+        feedforward: 1.0
+        attitude_gain: 0.5
+        heading_gain: 1.0
+        heading_body_gain: 1.0
+        dcm_feedback: 1.0
+        dcm_position_limit: 0.03
+        max_velocity: [0.15, 0.0, 0.3]
+        max_acceleration: [0.2, 0.2, 0.6]
+        idle_time: 0.5
+        gains:
+          legs: {kp: 600.0, kd: 6.0}
+          waist: {kp: 300.0, kd: 5.0}
+          arms: {kp: 100.0, kd: 2.0}
+          left_wrist_roll_joint: {kp: 50.0, kd: 2.0}
+          right_wrist_roll_joint: {kp: 50.0, kd: 2.0}
+          head_pitch_joint: {kp: 50.0, kd: 2.0}
+          head_yaw_joint: {kp: 10.0, kd: 0.1}
+    modes:
+      zero_torque: {plugin: gaitos_modes/ZeroTorqueMode}
+      damp:
+        plugin: gaitos_modes/DampMode
+        gains:
+          default: {kd: 3.0}
+      stand_up:
+        plugin: gaitos_modes/PostureMode
+        pose: stand
+        duration: 2.0
+        gains:
+          legs: {kp: 200.0, kd: 3.0}
+          waist: {kp: 300.0, kd: 5.0}
+          arms: {kp: 100.0, kd: 2.0}
+          left_wrist_roll_joint: {kp: 50.0, kd: 2.0}
+          right_wrist_roll_joint: {kp: 50.0, kd: 2.0}
+          head_pitch_joint: {kp: 50.0, kd: 2.0}
+          head_yaw_joint: {kp: 10.0, kd: 0.1}
+      squat:
+        plugin: gaitos_modes/PostureMode
+        pose: squat
+        duration: 2.0
+        gains:
+          legs: {kp: 200.0, kd: 3.0}
+          waist: {kp: 300.0, kd: 5.0}
+          arms: {kp: 100.0, kd: 2.0}
+          left_wrist_roll_joint: {kp: 50.0, kd: 2.0}
+          right_wrist_roll_joint: {kp: 50.0, kd: 2.0}
+          head_pitch_joint: {kp: 50.0, kd: 2.0}
+          head_yaw_joint: {kp: 10.0, kd: 0.1}
+        allowed_from: [stand_up, balance_stand, squat]
+      balance_stand:
+        plugin: gaitos_modes/BalanceStandMode
+        controller: stance
+        on_twist: locomotion_lipm
+        allowed_from: [stand_up, squat, locomotion, locomotion_lipm, balance_stand]
+      locomotion:
+        plugin: gaitos_modes/LocomotionMode
+        controller: gait
+        gait: walk
+        allowed_from: [balance_stand, stand_up, locomotion, locomotion_lipm]
+      locomotion_lipm:
+        plugin: gaitos_modes/LocomotionMode
+        controller: lipm
+        allowed_from: [balance_stand, stand_up, locomotion, locomotion_lipm]

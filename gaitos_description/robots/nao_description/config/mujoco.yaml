@@ -1,0 +1,8 @@
+# MuJoCo model of the NAO (scripts/make_mjcf.py: urdf/nao_gazebo.urdf -> mjcf/nao.xml, scene.xml).
+# Collisions, rotor inertia and joint losses come from the physics URDF (config/gazebo.yaml).
+base: base_link
+imu: {body: base_link, pos: [-0.008, 0.00606, 0.027]}   # ImuTorsoAccelerometer_frame of the URDF
+timestep: 0.001
+geom: {friction: [1.0, 0.02, 0.01], condim: 3}
+actuators: true
+skeleton: {radius: 0.012, rgba: [0.9, 0.9, 0.95, 1]}   # looks of the arms and fingers (no meshes)

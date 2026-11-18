@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>gaitos_unitree_sim</name>
+  <version>0.1.0</version>
+  <description>The DDS interface of a Unitree humanoid (R1: lowstate, odommodestate, sport and arm RPC) in front of a simulated gaitos, so a ROS 2 stack written for the real robot (unitree_r1) runs against MuJoCo or Gazebo.</description>
+  <maintainer email="juanscelyg@gmail.com">Juan S. Cely G.</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>gaitos_system</depend>
+  <depend>pluginlib</depend>
+  <depend>rclcpp</depend>
+  <depend>std_msgs</depend>
+  <depend>unitree_api</depend>
+  <depend>unitree_go</depend>
+  <depend>unitree_hg</depend>
+  <depend>nlohmann-json-dev</depend>
+  <exec_depend>gaitos_mujoco</exec_depend>
+  <exec_depend>gaitos_gazebo</exec_depend>
+  <test_depend>ament_cmake_gtest</test_depend>
+  <test_depend>gaitos_hardware</test_depend>
+  <test_depend>gaitos_description</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

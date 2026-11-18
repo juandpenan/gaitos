@@ -1,0 +1,31 @@
+# The R1 seen by unitree_r1 in simulation: gaitos behind the DDS interface of the robot.
+# Added to the simulator files (gaitos_mujoco r1_mujoco.yaml or gaitos_gazebo r1_gazebo.yaml).
+/**:
+  ros__parameters:
+    # The robot state is published by unitree_r1 (r1_state from /lowstate, robot_state_publisher)
+    publish_tf: false
+    publish: {joint_states: false, odometry: false}
+    extensions:
+      unitree:
+        plugin: gaitos_unitree_sim/UnitreeHgEmulator
+        # LowState slots: the documented motor order of the R1 (as gaitos_unitree r1_unitree.yaml)
+        motor_index: {left_hip_pitch_joint: 0, left_hip_roll_joint: 1, left_hip_yaw_joint: 2,
+          left_knee_joint: 3, left_ankle_pitch_joint: 4, left_ankle_roll_joint: 5,
+          right_hip_pitch_joint: 6, right_hip_roll_joint: 7, right_hip_yaw_joint: 8,
+          right_knee_joint: 9, right_ankle_pitch_joint: 10, right_ankle_roll_joint: 11,
+          waist_roll_joint: 12, waist_yaw_joint: 13, left_shoulder_pitch_joint: 15,
+          left_shoulder_roll_joint: 16, left_shoulder_yaw_joint: 17, left_elbow_joint: 18,
+          left_wrist_roll_joint: 19, right_shoulder_pitch_joint: 22, right_shoulder_roll_joint: 23,
+          right_shoulder_yaw_joint: 24, right_elbow_joint: 25, right_wrist_roll_joint: 26,
+          head_pitch_joint: 29, head_yaw_joint: 30}
+        # FSM of the R1 locomotion service <-> gaitos modes
+        #   SetFsmId: 0 zero torque, 1 damp, 4 locked stand, 811 walking (stands, walks on SetVelocity)
+        fsm:
+          ids: [0, 1, 4, 811]
+          modes: [zero_torque, damp, stand_up, balance_stand]
+          # GetFsmId: the FSM reported for each gaitos mode
+          report_modes: [zero_torque, damp, stand_up, squat, balance_stand, locomotion_lipm]
+          report_ids: [0, 1, 4, 4, 811, 811]
+        walking_modes: [balance_stand, locomotion_lipm]
+        max_velocity_duration: 1.0
+        rates: {lowstate: 500.0, odometry: 100.0, slow: 10.0}

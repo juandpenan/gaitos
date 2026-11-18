@@ -1,0 +1,143 @@
+# Unitree Go2 (quadruped, 12 joints). Joint and leg order: Unitree SDK2 motor order.
+/**:
+  ros__parameters:
+    robot:
+      name: go2
+      urdf: package://gaitos_description/robots/go2_description/urdf/go2.urdf
+      srdf: package://gaitos_description/robots/go2_description/srdf/go2.srdf
+      base_link: base
+      joints: [FR_hip_joint, FR_thigh_joint, FR_calf_joint, FL_hip_joint, FL_thigh_joint, FL_calf_joint,
+        RR_hip_joint, RR_thigh_joint, RR_calf_joint, RL_hip_joint, RL_thigh_joint, RL_calf_joint]
+      legs:
+        names: [FR, FL, RR, RL]
+        groups: [FR_leg, FL_leg, RR_leg, RL_leg]
+    actuators:
+      motors: {plugin: gaitos_actuators/PdPassthrough, joints: all, position_margin: 0.02}
+    contacts: {plugin: gaitos_sensors/ForceThresholdContact, on_threshold: 25.0, off_threshold: 10.0}
+    estimator: {ground_height: 0.022}
+    controllers:
+      stance:
+        plugin: gaitos_controllers/StanceController
+        stance_pose: stand
+        gains:
+          legs: {kp: 60.0, kd: 3.0}
+        gravity_compensation: 1.0
+        max_offset: [0.06, 0.04, 0.1]
+        max_rpy: [0.35, 0.35, 0.4]
+      gait:
+        plugin: gaitos_controllers/GaitController
+        stance_pose: stand
+        default_gait: trot
+        gaits:
+          trot:
+            offsets: [0.0, 0.5, 0.5, 0.0]
+            period: 0.36
+            duty: 0.55
+            step_height: 0.07
+          walk:
+            offsets: [0.0, 0.5, 0.75, 0.25]
+            period: 0.8
+            duty: 0.75
+            step_height: 0.06
+          pace:
+            offsets: [0.0, 0.5, 0.0, 0.5]
+            period: 0.36
+            duty: 0.55
+            step_height: 0.07
+        max_velocity: [0.8, 0.4, 1.2]
+        max_acceleration: [1.0, 0.8, 2.0]
+        raibert_gain: 0.03
+        velocity_feedback:
+          kp: [0.1, 0.1, 0.2]
+          ki: [1.0, 1.0, 2.0]
+          max_integral: [0.3, 0.2, 1.0]
+        gravity_compensation: 1.0
+        gains:
+          stance:
+            legs: {kp: 60.0, kd: 3.0}
+          swing:
+            legs: {kp: 40.0, kd: 2.0}
+      mpc:
+        plugin: gaitos_dynamics/ConvexMpcController
+        stance_pose: stand
+        foot_height: 0.022
+        horizon: 10
+        mpc_dt: 0.03
+        mu: 0.4
+        fz_max: 150.0
+        default_gait: trot
+        gaits:
+          trot:
+            offsets: [0.0, 0.5, 0.5, 0.0]
+            period: 0.36
+            duty: 0.55
+            step_height: 0.07
+          walk:
+            offsets: [0.0, 0.5, 0.75, 0.25]
+            period: 0.8
+            duty: 0.75
+            step_height: 0.06
+          pace:
+            offsets: [0.0, 0.5, 0.0, 0.5]
+            period: 0.36
+            duty: 0.55
+            step_height: 0.07
+        max_velocity: [1.0, 0.5, 1.5]
+        max_acceleration: [1.5, 1.0, 3.0]
+        raibert_gain: 0.03
+        gains:
+          stance:
+            legs: {kp: 0.0, kd: 0.5}
+          swing:
+            legs: {kp: 40.0, kd: 2.0}
+          standing:              # stopped: posture held under the MPC forces
+            legs: {kp: 40.0, kd: 2.0}
+    modes:
+      zero_torque: {plugin: gaitos_modes/ZeroTorqueMode}
+      damp:
+        plugin: gaitos_modes/DampMode
+        gains:
+          default: {kd: 2.0}
+      stand_up:
+        plugin: gaitos_modes/PostureMode
+        pose: stand
+        duration: 1.5
+        gains:
+          legs: {kp: 60.0, kd: 5.0}
+      stand_down:
+        plugin: gaitos_modes/PostureMode
+        gains:
+          legs: {kp: 60.0, kd: 5.0}
+        poses: [stand_low, lie]
+        durations: [0.8, 1.0]
+      recovery_stand:
+        plugin: gaitos_modes/PostureMode
+        gains:
+          legs: {kp: 60.0, kd: 5.0}
+        next: balance_stand
+        poses: [lie, stand]
+        durations: [1.0, 1.5]
+      sit:
+        plugin: gaitos_modes/PostureMode
+        pose: sit
+        duration: 1.5
+        gains:
+          legs: {kp: 60.0, kd: 5.0}
+        allowed_from: [stand_up, balance_stand, sit]
+      balance_stand:
+        plugin: gaitos_modes/BalanceStandMode
+        controller: stance
+        on_twist: locomotion
+        allowed_from: [stand_up, recovery_stand, locomotion, sit, balance_stand]
+      locomotion:
+        plugin: gaitos_modes/LocomotionMode
+        controller: gait
+        gait: trot
+        command_timeout: 0.5
+        allowed_from: [balance_stand, stand_up, locomotion, locomotion_mpc]
+      locomotion_mpc:
+        plugin: gaitos_modes/LocomotionMode
+        controller: mpc
+        gait: trot
+        command_timeout: 0.5
+        allowed_from: [balance_stand, stand_up, locomotion, locomotion_mpc]

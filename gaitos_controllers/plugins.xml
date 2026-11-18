@@ -1,0 +1,15 @@
+<!--
+  Copyright 2026 Juan S. Cely G.
+  Licensed under the Apache License, Version 2.0
+-->
+<library path="gaitos_controllers">
+  <class name="gaitos_controllers/JointPdController" type="gaitos_controllers::JointPdController" base_class_type="gaitos::ControllerBase">
+    <description>Tracks the joint targets given by the mode</description>
+  </class>
+  <class name="gaitos_controllers/StanceController" type="gaitos_controllers::StanceController" base_class_type="gaitos::ControllerBase">
+    <description>Standing on all feet, body pose (height, roll, pitch, yaw) over the feet by inverse kinematics</description>
+  </class>
+  <class name="gaitos_controllers/GaitController" type="gaitos_controllers::GaitController" base_class_type="gaitos::ControllerBase">
+    <description>Periodic gait with Raibert foot placement following a body twist</description>
+  </class>
+</library>
