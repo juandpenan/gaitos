@@ -1,0 +1,95 @@
+# Build, test and run gaitos on ROS 2 rolling (CycloneDDS), in the official rolling image.
+name: rolling
+
+on:
+  push:
+    branches: [rolling]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 1'   # weekly: rolling moves under us
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ROS_DISTRO: rolling
+  RMW_IMPLEMENTATION: rmw_cyclonedds_cpp
+  ROS_AUTOMATIC_DISCOVERY_RANGE: LOCALHOST
+  DEBIAN_FRONTEND: noninteractive
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    container:
+      image: ros:rolling-ros-base
+      options: --shm-size=1g
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # The checkout is the colcon workspace: src/gaitos, build, install and log next to it.
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: src/gaitos
+
+      - name: Dependencies
+        run: |
+          apt-get update
+          # Not in rosdep: MuJoCo 3 (Ubuntu package), EGL (snapshot tool, offscreen gz rendering),
+          # the CycloneDDS RMW, ccache
+          apt-get install -y --no-install-recommends \
+            libmujoco-dev libegl-dev libegl-mesa0 libgl1-mesa-dri \
+            ros-rolling-rmw-cyclonedds-cpp ccache
+          rosdep update --rosdistro "$ROS_DISTRO"
+          rosdep install --from-paths src --ignore-src -y -r --rosdistro "$ROS_DISTRO"
+
+      - name: ccache
+        uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ccache-rolling-${{ github.sha }}
+          restore-keys: ccache-rolling-
+
+      - name: Build
+        run: |
+          source /opt/ros/$ROS_DISTRO/setup.bash
+          export CCACHE_DIR="$PWD/.ccache"
+          colcon build --base-paths src --symlink-install \
+            --event-handlers console_cohesion+ \
+            --cmake-args -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          ccache -s
+
+      - name: Test
+        run: |
+          source install/setup.bash
+          export ROS_DOMAIN_ID=42
+          colcon test --base-paths src --return-code-on-test-failure \
+            --event-handlers console_direct+ --ctest-args --output-on-failure
+          colcon test-result --verbose
+
+      - name: Smoke, MuJoCo (Go2)
+        run: |
+          source install/setup.bash
+          export ROS_DOMAIN_ID=43 SMOKE_LOG_DIR=log/smoke
+          src/gaitos/.github/scripts/smoke_launch.sh gaitos_mujoco go2
+
+      - name: Smoke, Gazebo (Go2)
+        run: |
+          source install/setup.bash
+          export ROS_DOMAIN_ID=44 SMOKE_LOG_DIR=log/smoke
+          src/gaitos/.github/scripts/smoke_launch.sh gaitos_gazebo go2 --min-distance 0.2 -- headless:=true
+
+      - name: Test results and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rolling-test-results
+          path: |
+            build/*/test_results
+            log
+          if-no-files-found: ignore

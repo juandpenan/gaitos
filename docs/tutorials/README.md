@@ -22,7 +22,7 @@ of the simulation, known issues and how the clips were made.
 ```bash
 cd ~/ws/legged_ws
 source /opt/ros/rolling/setup.bash
-colcon build --base-paths src          # once (see the main README, "Build")
+colcon build --base-paths src          # once (see docs/build.md)
 source install/setup.bash
 export ROS_DOMAIN_ID=<free domain>     # the emulated vendor interfaces use the robot topic names
 ```

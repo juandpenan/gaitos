@@ -9,6 +9,8 @@
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>gaitos_system</depend>
+  <depend>gz_sim_vendor</depend>
+  <depend>gz_plugin_vendor</depend>
   <exec_depend>gaitos_description</exec_depend>
   <exec_depend>ros_gz_sim</exec_depend>
   <exec_depend>ros_gz_bridge</exec_depend>

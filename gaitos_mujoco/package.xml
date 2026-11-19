@@ -10,7 +10,8 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>gaitos_core</depend>
   <depend>gaitos_system</depend>
-  <!-- MuJoCo 3 from the system (/usr/lib/cmake/mujoco) -->
+  <depend>zlib</depend>
+  <!-- MuJoCo 3 from the system (libmujoco-dev; no rosdep key) and EGL for the snapshot tool -->
   <test_depend>ament_cmake_gtest</test_depend>
   <test_depend>gaitos_description</test_depend>
   <test_depend>ament_index_cpp</test_depend>
