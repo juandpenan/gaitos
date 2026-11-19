@@ -1,5 +1,5 @@
 # NAO V6 in MuJoCo (in process, lockstep): the model made by make_mjcf.py from the URDF
-# (primitive collisions, V6 motor limits; it does not need nao_meshes).
+# (primitive collisions, V6 motor limits, the Fuel meshes as looks).
 #   ros2 launch gaitos_mujoco sim.launch.py robot:=nao
 /**:
   ros__parameters:

@@ -30,6 +30,7 @@ bool installed(const std::string & folder)
 
 bool assets() {return installed("go2_description/mjcf/assets");}
 bool r1_assets() {return installed("r1_description/mjcf/meshes");}
+bool nao_assets() {return installed("nao_description/mjcf/meshes");}
 
 void request(Gaitos & g, const std::string & mode)
 {
@@ -170,7 +171,9 @@ TEST(Mujoco, R1StandsAndSquats)
 
 TEST(Mujoco, NaoStandsFromCrouch)
 {
-  // The NAO model needs no downloaded assets (primitive collisions, make_mjcf.py)
+  if (!nao_assets()) {
+    GTEST_SKIP() << "gaitos_description was built with GAITOS_FETCH_ASSETS=OFF";
+  }
   Gaitos g;
   g.configure(testutil::make_params(testutil::robot_files(std::string(GAITOS_SOURCE_DIR), "nao", {"gaitos_mujoco/params/nao_mujoco.yaml"})));
   ASSERT_TRUE(g.start());
@@ -200,6 +203,9 @@ TEST(Mujoco, NaoStandsFromCrouch)
 
 TEST(Mujoco, NaoWalks)
 {
+  if (!nao_assets()) {
+    GTEST_SKIP() << "gaitos_description was built with GAITOS_FETCH_ASSETS=OFF";
+  }
   Gaitos g;
   g.configure(testutil::make_params(testutil::robot_files(std::string(GAITOS_SOURCE_DIR), "nao", {"gaitos_mujoco/params/nao_mujoco.yaml"})));
   ASSERT_TRUE(g.start());

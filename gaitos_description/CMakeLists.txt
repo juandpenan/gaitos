@@ -8,14 +8,16 @@ find_package(ament_cmake REQUIRED)
 
 install(DIRECTORY robots launch rviz DESTINATION share/${PROJECT_NAME}
   PATTERN "meshes" EXCLUDE PATTERN "assets" EXCLUDE)   # the assets come from FetchContent
-install(PROGRAMS scripts/make_gazebo_urdf.py scripts/make_mjcf.py DESTINATION lib/${PROJECT_NAME})
+install(PROGRAMS scripts/make_gazebo_urdf.py scripts/make_mjcf.py scripts/dae_to_obj.py
+  DESTINATION lib/${PROJECT_NAME})
 
 # Meshes and MuJoCo assets of the Unitree robots (BSD-3-Clause, Unitree Robotics), not versioned
 # with gaitos: downloaded at configure time (archives of pinned commits) and installed next to
 # the URDF / MJCF of each robot. Offline or with local copies:
 #   -DFETCHCONTENT_SOURCE_DIR_UNITREE_ROS=<unitree_ros> -DFETCHCONTENT_SOURCE_DIR_UNITREE_MUJOCO=<unitree_mujoco>
-# Without them (no MuJoCo models, no meshes in RViz / Gazebo): -DGAITOS_FETCH_ASSETS=OFF
-option(GAITOS_FETCH_ASSETS "Download the Unitree meshes and MuJoCo assets" ON)
+# Without them (no MuJoCo models, no meshes in RViz / Gazebo, also for the NAO below):
+# -DGAITOS_FETCH_ASSETS=OFF
+option(GAITOS_FETCH_ASSETS "Download the meshes and MuJoCo assets of the robots" ON)
 if(GAITOS_FETCH_ASSETS)
   include(FetchContent)
   set(UNITREE_ROS_TAG 157ff950351e5f535e03c5d85a16b7d594b3dbcc CACHE STRING "unitree_ros commit")
@@ -52,36 +54,39 @@ if(GAITOS_FETCH_ASSETS)
     RENAME unitree_mujoco.LICENSE)
 endif()
 
-# NAO meshes (SoftBank Robotics, nao_meshes installer), only for the looks: the simulation
-# models of the NAO use primitive collisions. Their license is not the one of gaitos but
-# Creative Commons BY-NC-ND 4.0 (non commercial, no derivatives): building with
-# -DGAITOS_NAO_MESHES=ON means you accept it. Installed with that license next to them.
-# Offline: -DGAITOS_NAO_MESHES_INSTALLER=<naomeshes-0.6.7-linux-x64-installer.run>
-option(GAITOS_NAO_MESHES "Download the NAO meshes, accepting their CC BY-NC-ND 4.0 license" OFF)
-if(GAITOS_NAO_MESHES)
-  if(NOT CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64")
-    message(FATAL_ERROR "The NAO meshes installer only exists for x86_64")
+# NAO meshes: the Gazebo Fuel model "NAO with Ignition position controller" (OpenRobotics,
+# from osrf/robocup3ds), Creative Commons Attribution 4.0. The .dae (and their texture) go next
+# to the URDF for RViz and Gazebo; dae_to_obj.py converts them to OBJ for the MuJoCo model
+# (mjcf/nao.xml, made by make_mjcf.py). Offline: -DFETCHCONTENT_SOURCE_DIR_NAO_FUEL=<unzipped model>
+if(GAITOS_FETCH_ASSETS)
+  set(NAO_FUEL_VERSION 2 CACHE STRING "Version of the NAO model in Gazebo Fuel")
+  FetchContent_Declare(nao_fuel
+    URL "https://fuel.gazebosim.org/1.0/OpenRobotics/models/NAO%20with%20Ignition%20position%20controller/${NAO_FUEL_VERSION}/NAO%20with%20Ignition%20position%20controller.zip"
+    URL_HASH SHA256=f44767c0fc7bc614002c2c026089328027593679b4e9bff270d3e37318984c5d
+    DOWNLOAD_NAME nao_fuel.zip
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
+    SOURCE_SUBDIR no_cmake)
+  FetchContent_MakeAvailable(nao_fuel)
+  if(NOT IS_DIRECTORY ${nao_fuel_SOURCE_DIR}/meshes/V40)
+    message(FATAL_ERROR "No meshes/V40 in the NAO model of Fuel: ${nao_fuel_SOURCE_DIR}")
   endif()
-  set(NAO_INSTALLER ${CMAKE_CURRENT_BINARY_DIR}/nao_meshes/installer.run)
-  if(GAITOS_NAO_MESHES_INSTALLER)
-    configure_file(${GAITOS_NAO_MESHES_INSTALLER} ${NAO_INSTALLER} COPYONLY)
-  elseif(NOT EXISTS ${NAO_INSTALLER})
-    file(DOWNLOAD
-      https://github.com/ros-naoqi/nao_meshes_installer/raw/master/naomeshes-0.6.7-linux-x64-installer.run
-      ${NAO_INSTALLER} INACTIVITY_TIMEOUT 60 EXPECTED_MD5 5f897a3328f217bae6c0ed2a934e524c)
-  endif()
-  set(NAO_MESHES ${CMAKE_CURRENT_BINARY_DIR}/nao_meshes/out)
-  add_custom_command(OUTPUT ${NAO_MESHES}/meshes/V40
-    COMMAND chmod +x ${NAO_INSTALLER}
-    COMMAND ${NAO_INSTALLER} --mode unattended --prefix ${NAO_MESHES}
-    COMMAND ${CMAKE_COMMAND} -E rm -rf ${NAO_MESHES}/uninstall ${NAO_MESHES}/rollback*
-    DEPENDS ${NAO_INSTALLER}
-    COMMENT "NAO meshes: unpacking (license CC BY-NC-ND 4.0 accepted with GAITOS_NAO_MESHES)")
-  add_custom_target(nao_meshes ALL DEPENDS ${NAO_MESHES}/meshes/V40)
-  install(DIRECTORY ${NAO_MESHES}/meshes ${NAO_MESHES}/texture
-    DESTINATION share/${PROJECT_NAME}/robots/nao_description OPTIONAL)
-  install(FILES robots/nao_description/MESHES_LICENSE.md
-    DESTINATION share/${PROJECT_NAME}/robots/nao_description/meshes RENAME LICENSE.md)
+
+  find_package(Python3 REQUIRED COMPONENTS Interpreter)
+  set(NAO_OBJ ${CMAKE_CURRENT_BINARY_DIR}/nao_obj)
+  file(GLOB NAO_DAE ${nao_fuel_SOURCE_DIR}/meshes/V40/*.dae)
+  add_custom_command(OUTPUT ${NAO_OBJ}/Torso.obj
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/dae_to_obj.py
+      ${nao_fuel_SOURCE_DIR}/meshes/V40 ${NAO_OBJ}
+    DEPENDS ${NAO_DAE} scripts/dae_to_obj.py
+    COMMENT "NAO meshes: .dae -> .obj for MuJoCo")
+  add_custom_target(nao_obj ALL DEPENDS ${NAO_OBJ}/Torso.obj)
+
+  set(NAO ${ROBOTS}/nao_description)
+  install(DIRECTORY ${nao_fuel_SOURCE_DIR}/meshes/V40/ DESTINATION ${NAO}/meshes/V40)
+  install(DIRECTORY ${nao_fuel_SOURCE_DIR}/materials/texture/ DESTINATION ${NAO}/materials/texture)
+  install(DIRECTORY ${NAO_OBJ}/ DESTINATION ${NAO}/mjcf/meshes)
+  install(FILES robots/nao_description/MESHES_LICENSE.md DESTINATION ${NAO}/meshes
+    RENAME LICENSE.md)
 endif()
 
 # The URDFs refer to their meshes as package://<robot>_description/...: each robot folder is

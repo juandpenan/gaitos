@@ -6,7 +6,7 @@
 |---|---|---|---|
 | Joints | 12 | 26 | 25 actuated (`RHipYawPitch` mimics `LHipYawPitch`) |
 | URDF | unitree_ros `go2_description` (+ Gazebo variant) | unitree_ros `r1_description` (+ Gazebo variant) | ros-naoqi `nao_robot` (V5 kinematics and masses, V6 motor limits; + simulation variant) |
-| MuJoCo model | unitree_mujoco `go2` | unitree_mujoco `r1` | `make_mjcf.py` from the simulation variant |
+| MuJoCo model | unitree_mujoco `go2` | unitree_mujoco `r1` | `make_mjcf.py` from the simulation variant and the Fuel meshes |
 | Motors | `PdPassthrough` | `PdPassthrough` | `PositionServo` (stiffness 0..1; in simulation a PD servo, `servo: {kp, kd}`) |
 | Contacts | foot_force / simulator forces | joint torques (real), simulator forces | FSR (simulator forces) |
 | Backends | MuJoCo, Gazebo, unitree_sdk2 | MuJoCo, Gazebo, unitree_sdk2 | MuJoCo, Gazebo, `FakeHardware` (NAOqi backend to be written) |
@@ -31,7 +31,15 @@ balance_stand starts it) and `mode/crouch`.
   primitive collisions with the soles from the FSR frames, no Gazebo classic plugins, links
   renamed where they clash with a joint name in SDF, no `<mimic>`) → `mjcf/nao.xml`
   (`make_mjcf.py` with `config/mujoco.yaml`: free base, IMU at the torso accelerometer, a motor
-  per joint with the torque limit of the URDF). Neither needs the meshes.
+  per joint with the torque limit of the URDF, the meshes of the URDF as visual geoms with
+  the texture of the robot, the collision primitives in the hidden group 3). The physics never
+  depends on the meshes. To make it again (after `colcon build`, which converts the meshes):
+
+  ```bash
+  cd src/gaitos/gaitos_description/robots/nao_description
+  python3 ../../scripts/make_mjcf.py urdf/nao_gazebo.urdf config/mujoco.yaml mjcf/nao.xml \
+    --meshes $(ros2 pkg prefix gaitos_description)/share/nao_description/mjcf/meshes
+  ```
 - Joint limits of the URDF: the NAO V6 motors (doc.aldebaran.com 2-8, motors_naov6): torque =
   stall torque × reduction (e.g. 8.5 N·m for the pitch joints of the legs, 13.1 N·m for
   HipYawPitch, HipRoll and AnkleRoll), speed = no-load speed / reduction.
@@ -41,10 +49,12 @@ balance_stand starts it) and `mode/crouch`.
 - Servos: the commanded stiffness (0..1, NAOqi) scales a PD of `servo.kp` / `servo.kd`:
   200 N·m/rad and 1.0 N·m·s/rad in MuJoCo, 60 and 0.8 in Gazebo (stiffer servos make the feet
   bounce on its contacts; softer ones in MuJoCo give speed spikes the joint limits stop).
-- Meshes (looks only, RViz and Gazebo): `-DGAITOS_NAO_MESHES=ON` downloads the nao_meshes
-  installer of ros-naoqi and installs them in `robots/nao_description/meshes`. **Their license
-  is not that of gaitos: Creative Commons BY-NC-ND 4.0** (`robots/nao_description/MESHES_LICENSE.md`,
-  installed next to them); building with that option means accepting it.
+- Meshes (looks only): the `.dae` of the model "NAO with Ignition position controller" of
+  [Gazebo Fuel](https://app.gazebosim.org/OpenRobotics/fuel/models/NAO%20with%20Ignition%20position%20controller) (OpenRobotics, from osrf/robocup3ds, **CC BY 4.0**), downloaded when building
+  (FetchContent) and installed in `robots/nao_description/meshes/V40` with their texture
+  (RViz, Gazebo) and as OBJ in `mjcf/meshes` (MuJoCo). Attribution in
+  `robots/nao_description/MESHES_LICENSE.md`. The collisions of `urdf/nao.urdf` use the same
+  `.dae`.
 
 Adding a robot: URDF (+ meshes), SRDF (legs, `all` group, poses), a parameter file in
 `gaitos_description/robots/<robot>_description/config/`, and a backend (MuJoCo with an

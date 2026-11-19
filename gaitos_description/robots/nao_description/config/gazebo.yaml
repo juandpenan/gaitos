@@ -1,7 +1,6 @@
 # Physics of the NAO in the simulators (scripts/make_gazebo_urdf.py -> urdf/nao_gazebo.urdf, and
-# scripts/make_mjcf.py -> mjcf/nao.xml from it). The URDF collisions are meshes of nao_meshes
-# (not always installed, CC BY-NC-ND 4.0): they become primitive shapes here, so the simulation
-# never needs the meshes.
+# scripts/make_mjcf.py -> mjcf/nao.xml from it). The URDF collisions are meshes: they become
+# primitive shapes here, so the physics never depends on the meshes (only the looks).
 remove_gazebo_tags: true   # Gazebo classic plugins of nao_robot
 unique_names: true         # SDF: links LAnklePitch / RAnklePitch are also joint names
 remove_mimic: true         # RHipYawPitch and the fingers follow their master in the hardware plugins

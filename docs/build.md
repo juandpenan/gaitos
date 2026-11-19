@@ -34,13 +34,11 @@ folder, of which ~100 MB are installed). Local copies:
 `-DFETCHCONTENT_SOURCE_DIR_UNITREE_ROS=<path> -DFETCHCONTENT_SOURCE_DIR_UNITREE_MUJOCO=<path>`;
 without them (no MuJoCo, no meshes in RViz): `-DGAITOS_FETCH_ASSETS=OFF`.
 
-The NAO meshes (looks only, RViz and Gazebo) are not downloaded by default: their license is
-Creative Commons BY-NC-ND 4.0, not that of gaitos, and building with
-`-DGAITOS_NAO_MESHES=ON` means accepting it (see [Robots](robots.md)).
-
-```bash
-colcon build --base-paths src --packages-select gaitos_description --cmake-args -DGAITOS_NAO_MESHES=ON
-```
+The NAO meshes come the same way from the model "NAO with Ignition position controller" of
+[Gazebo Fuel](https://app.gazebosim.org/OpenRobotics/fuel/models/NAO%20with%20Ignition%20position%20controller) (CC BY 4.0, version `NAO_FUEL_VERSION`, 3.5 MB): the `.dae` and their texture for
+RViz and Gazebo, and the same meshes converted to OBJ by `scripts/dae_to_obj.py` (python3-numpy)
+for the MuJoCo model. Local copy (the unzipped model):
+`-DFETCHCONTENT_SOURCE_DIR_NAO_FUEL=<path>`.
 
 ## Continuous integration
 

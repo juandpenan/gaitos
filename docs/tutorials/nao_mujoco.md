@@ -3,14 +3,45 @@
 [← Tutorials](README.md)
 
 The SoftBank / Aldebaran NAO (V6 motor limits) in MuJoCo, run inside the gaitos node. Model:
-`mjcf/nao.xml`, made by `make_mjcf.py` from the physics URDF: primitive collisions (soles from
-the FSR frames), a visual skeleton for the arms and fingers, no meshes (the NAO meshes are
-under CC BY-NC-ND 4.0 and only optional, for RViz and Gazebo).
+`mjcf/nao.xml`, made by `make_mjcf.py` from the physics URDF, with primitive collisions and the
+NAO meshes of Gazebo Fuel (CC BY 4.0) as its looks ([the model](#the-model)).
 
 | Walking and turning (`locomotion`) | Head and arms over the controller (`joint_targets`) |
 |:---:|:---:|
 | ![NAO standing up, walking and turning in MuJoCo](../media/nao_mujoco_walk.gif) | ![NAO moving the head and the arms while standing](../media/nao_mujoco_joints.gif) |
 | crouch → stand_init → balance_stand → 0.06 m/s → 0.3 rad/s → stop | head and arms moved from outside, then stand_init takes them back |
+
+## The model
+
+| File (in `gaitos_description/robots/nao_description`) | What it is |
+|---|---|
+| `urdf/nao.urdf` | ros-naoqi `nao_robot` (V5 kinematics and masses, V6 motor limits); visuals and collisions are the `.dae` of Fuel |
+| `config/gazebo.yaml` → `urdf/nao_gazebo.urdf` | the physics variant (`make_gazebo_urdf.py`): primitive collisions, soles from the FSR frames, no `<mimic>` |
+| `config/mujoco.yaml` → `mjcf/nao.xml`, `mjcf/scene.xml` | the MuJoCo model (`make_mjcf.py`): free base, IMU site, a motor per joint, and the meshes |
+| `mjcf/meshes/*.obj` (installed only) | the 39 `.dae` of Fuel converted to OBJ by `dae_to_obj.py` when building |
+| `meshes/V40/*.dae`, `materials/texture/textureNAO.png` (installed only) | the Fuel model "NAO with Ignition position controller" (version 2), for RViz and Gazebo |
+
+In `nao.xml` every link carries its mesh as a visual geom (class `visual`: group 1, no contact,
+no mass) with the texture of the NAO; the collision primitives are in group 3, hidden by
+default. In `simulate` (`mujoco-simulate`), the *Group enable* panel shows them: geom group 3.
+The physics does not depend on the meshes: masses and inertias are those of the URDF, and the
+contacts are the primitives.
+
+The meshes are downloaded with the other assets (`GAITOS_FETCH_ASSETS`, on by default); without
+them the model does not load and the NAO tests are skipped. Attribution of the meshes:
+`MESHES_LICENSE.md`.
+
+To make the model again after changing `nao.urdf`, `gazebo.yaml` or `mujoco.yaml` (the OBJ come
+from the build):
+
+```bash
+cd src/gaitos/gaitos_description
+python3 scripts/make_gazebo_urdf.py robots/nao_description/urdf/nao.urdf \
+  robots/nao_description/config/gazebo.yaml robots/nao_description/urdf/nao_gazebo.urdf
+cd robots/nao_description
+python3 ../../scripts/make_mjcf.py urdf/nao_gazebo.urdf config/mujoco.yaml mjcf/nao.xml \
+  --meshes $(ros2 pkg prefix gaitos_description)/share/nao_description/mjcf/meshes
+```
 
 ## 1. Before starting
 
