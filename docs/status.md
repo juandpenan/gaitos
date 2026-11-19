@@ -20,6 +20,9 @@ Verified on this machine with ROS 2 rolling (`colcon test`: 64 tests, plus launc
   `balance_stand` with body posture, and back to `crouch` (test `NaoStandsFromCrouch` in MuJoCo).
   Walking forward ≈0.06 m/s and turning in place 0.33 rad/s (test `NaoWalks`); Gazebo walked
   0.8 m in 14 s.
+- NAO model with the Fuel meshes: `mjcf/nao.xml` with the meshes as visual geoms has the same
+  bodies, joints, inertias and collisions as without them (compared with the visuals removed);
+  both NAO MuJoCo tests pass with it, and Gazebo renders the same `.dae` with their texture.
 - NAO behind naoqi_driver (`gaitos_naoqi_sim`), MuJoCo and Gazebo, driven by a client of the
   naoqi_driver topics: `/joint_states` (26 joints), `/imu/torso`, `/joint_angles` (setAngles to
   (0.5, 0.2) reached, changeAngles −0.3), `/cmd_vel` 0.05 m/s for 8 s (0.36–0.41 m) and stop,

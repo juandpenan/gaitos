@@ -8,6 +8,8 @@
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <!-- dae_to_obj.py: the NAO meshes of Gazebo Fuel as OBJ for MuJoCo -->
+  <build_depend>python3-numpy</build_depend>
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>rviz2</exec_depend>
   <exec_depend>launch_ros</exec_depend>

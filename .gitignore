@@ -9,9 +9,9 @@ compile_commands.json
 
 # Downloaded at build time (FetchContent), never versioned:
 # - the Unitree meshes and MuJoCo assets (BSD-3, unitree_ros / unitree_mujoco)
-# - the NAO meshes and textures (CC BY-NC-ND 4.0: they must not be redistributed here)
+# - the NAO meshes and texture (Gazebo Fuel, CC BY 4.0) and their OBJ for MuJoCo
 gaitos_description/robots/*/meshes/
-gaitos_description/robots/*/texture/
+gaitos_description/robots/*/materials/
 gaitos_description/robots/*/mjcf/assets/
 gaitos_description/robots/*/mjcf/meshes/
 *.run

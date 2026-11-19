@@ -9,7 +9,7 @@ parameters.
 
 | | Go2 | R1 | NAO |
 |---|:---:|:---:|:---:|
-| **MuJoCo** | [![Go2 standing up, trotting and turning in MuJoCo](docs/media/go2_mujoco_walk.gif)](docs/tutorials/go2_mujoco.md) | [![R1 walking with the ZMP / LIPM controller in MuJoCo](docs/media/r1_mujoco_walk.gif)](docs/tutorials/r1_mujoco.md) | [![NAO standing up, walking and turning in MuJoCo](docs/media/nao_mujoco_walk.gif)](docs/tutorials/nao_mujoco.md) |
+| **MuJoCo** | [![Go2 standing up, trotting and turning in MuJoCo](docs/media/go2_mujoco_walk.gif)](docs/tutorials/go2_mujoco.md) | [![R1 walking with the ZMP / LIPM controller in MuJoCo](docs/media/r1_mujoco_walk.gif)](docs/tutorials/r1_mujoco.md) | [![NAO standing up, walking and turning in MuJoCo, with its meshes](docs/media/nao_mujoco_walk.gif)](docs/tutorials/nao_mujoco.md) |
 | **Gazebo** | [![Go2 standing up and trotting in Gazebo](docs/media/go2_gazebo_walk.gif)](docs/tutorials/go2_gazebo.md) | [![R1 walking in Gazebo](docs/media/r1_gazebo_walk.gif)](docs/tutorials/r1_gazebo.md) | [![NAO walking and turning in Gazebo, with its meshes](docs/media/nao_gazebo_walk.gif)](docs/tutorials/nao_gazebo.md) |
 
 - **Robots**: Unitree **Go2** (quadruped) and **R1** (humanoid), plus the **NAO** (V6 motors)
@@ -77,7 +77,7 @@ modes, postures, walking, the vendor interfaces, known issues ([all the tutorial
 
 | Page | Contents |
 |---|---|
-| [Build](docs/build.md) | Dependencies, FetchContent (SDK, messages, models), offline builds, NAO meshes, CI. |
+| [Build](docs/build.md) | Dependencies, FetchContent (SDK, messages, models), offline builds, CI. |
 | [Quick start, in detail](docs/quickstart.md) | MuJoCo, Gazebo, the real Unitree robots, the DDS simulator, the display. |
 | [Packages](docs/packages.md) | Every package of the repository and what it holds. |
 | [Architecture and plugins](docs/architecture.md) | The real-time cycle, its stages, the plugin interfaces, writing a plugin. |
@@ -96,5 +96,5 @@ modes, postures, walking, the vendor interfaces, known issues ([all the tutorial
 Apache 2.0. The robot models come from
 [unitree_ros](https://github.com/unitreerobotics/unitree_ros) and
 [unitree_mujoco](https://github.com/unitreerobotics/unitree_mujoco) (BSD-3-Clause, Unitree
-Robotics) and [nao_robot](https://github.com/ros-naoqi/nao_robot) (BSD). The NAO meshes,
-downloaded only with `GAITOS_NAO_MESHES=ON`, are © SoftBank Robotics under CC BY-NC-ND 4.0.
+Robotics) and [nao_robot](https://github.com/ros-naoqi/nao_robot) (BSD). The NAO meshes come
+from the model "NAO with Ignition position controller" of [Gazebo Fuel](https://app.gazebosim.org/OpenRobotics/fuel/models/NAO%20with%20Ignition%20position%20controller) (OpenRobotics, CC BY 4.0).

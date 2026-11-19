@@ -19,7 +19,7 @@ The ament packages of the repository (colcon), from the bottom layer up.
 | `gaitos_dynamics` | Dynamic controllers: `LipmZmpController`, `ConvexMpcController` (OSQP). |
 | `gaitos_modes` | `ModeManager` and the mode plugins: `ZeroTorqueMode`, `DampMode`, `PostureMode`, `BalanceStandMode`, `LocomotionMode`. |
 | `gaitos_system` | `Gaitos` (the cycle and its safety), `GaitosNode` (lifecycle node) and the `gaitos_node` executable. |
-| `gaitos_description` | `robots/<robot>_description/{urdf, srdf, config, mjcf}` (Go2, R1, NAO), `launch/display.launch.py`, RViz configuration, `scripts/make_gazebo_urdf.py` (physics URDF variant), `scripts/make_mjcf.py` (MJCF from it); fetches the Unitree meshes and MuJoCo assets (FetchContent) and, with `GAITOS_NAO_MESHES`, the NAO meshes. |
+| `gaitos_description` | `robots/<robot>_description/{urdf, srdf, config, mjcf}` (Go2, R1, NAO), `launch/display.launch.py`, RViz configuration, `scripts/make_gazebo_urdf.py` (physics URDF variant), `scripts/make_mjcf.py` (MJCF from it); fetches the Unitree meshes and MuJoCo assets and the NAO meshes of Gazebo Fuel (FetchContent), `scripts/dae_to_obj.py` (the NAO meshes as OBJ for MuJoCo). |
 | `gaitos_mujoco` | `MujocoHardware` plugin, `launch/sim.launch.py`, `params/`, `snapshot` tool. |
 | `gaitos_gazebo` | `gaitos_gz_system` plugin (hosts the node in gz-sim), worlds, `launch/sim.launch.py`, `params/`. |
 | `gaitos_unitree` | `UnitreeGoHardware` (Go2) and `UnitreeHgHardware` (R1) plugins over unitree_sdk2 (FetchContent), `launch/robot.launch.py`, `params/`, `go2_dds_sim` tool. |

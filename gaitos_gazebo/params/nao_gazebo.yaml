@@ -1,5 +1,5 @@
 # NAO V6 in Gazebo (gz-sim): urdf/nao_gazebo.urdf (make_gazebo_urdf.py: primitive collisions,
-# V6 motor limits), in the 0.5 ms world. The meshes (nao_meshes) are only looks.
+# V6 motor limits), in the 0.5 ms world. The meshes (Gazebo Fuel) are only looks.
 #   ros2 launch gaitos_gazebo sim.launch.py robot:=nao
 /**:
   ros__parameters:

@@ -4,7 +4,7 @@
 
 The NAO in Gazebo (gz-sim), in the 0.5 ms world. The physics model is `urdf/nao_gazebo.urdf`
 (`make_gazebo_urdf.py`: primitive collisions, the links renamed where SDF needs it, no Gazebo
-classic plugins). The looks are the NAO meshes, when built with them.
+classic plugins). The looks are the NAO meshes of Gazebo Fuel (CC BY 4.0).
 
 | Walking and turning, with the NAO meshes |
 |:---:|
@@ -19,17 +19,10 @@ source install/setup.bash
 export ROS_DOMAIN_ID=10
 ```
 
-**Meshes (optional, looks only).** They come from the ros-naoqi installer under their own
-license, **Creative Commons BY-NC-ND 4.0** (not that of gaitos). Building with this option
-means accepting it:
-
-```bash
-colcon build --base-paths src --packages-select gaitos_description --cmake-args -DGAITOS_NAO_MESHES=ON
-```
-
-They are installed in `robots/nao_description/meshes` with their license
-(`MESHES_LICENSE.md`). Without them the simulation is the same and the robot is drawn by its
-collision shapes.
+**Meshes (looks only).** `gaitos_description` downloads them when building, from the model
+"NAO with Ignition position controller" of Gazebo Fuel (CC BY 4.0, attribution in
+`robots/nao_description/MESHES_LICENSE.md`). With `-DGAITOS_FETCH_ASSETS=OFF` the simulation
+is the same in Gazebo and the robot is drawn by its collision shapes.
 
 ## 2. Launch
 
