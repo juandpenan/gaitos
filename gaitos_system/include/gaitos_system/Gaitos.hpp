@@ -65,6 +65,23 @@ struct JointTarget
 };
 
 /**
+ * @struct JointCommandOverride
+ * @brief Full motor command of one joint from outside the controller (e.g. the arm_sdk of a
+ * Unitree humanoid): position, velocity, feedforward torque and gains, blended with the output
+ * of the controller by `weight`.
+ */
+struct JointCommandOverride
+{
+  std::string name;
+  double position{0.0};    ///< [rad]
+  double velocity{0.0};    ///< [rad/s]
+  double effort{0.0};      ///< Feedforward torque [Nm]
+  double kp{0.0};          ///< [Nm/rad]
+  double kd{0.0};          ///< [Nm s/rad]
+  double weight{1.0};      ///< 0: the controller's command, 1: this one
+};
+
+/**
  * @class Gaitos
  * @brief The gaitos system: loads the robot model and every plugin from the configuration
  * and runs the cycle
@@ -138,6 +155,21 @@ public:
   std::size_t set_joint_targets(const std::vector<JointTarget> & targets);
   /// Joints that may take external targets in the current mode
   bool external_joint_allowed(std::size_t joint, const std::string & mode) const;
+  /**
+   * @brief Full commands for some joints, blended over the output of the controller (and the
+   * external targets): command = (1 - weight) * controller + weight * override, for the
+   * position, velocity, torque and gains. Same joints as set_joint_targets()
+   * (external_joint_allowed()). Commands with a non-finite value are ignored; the position is
+   * limited to the joint range, the velocity and torque to the joint limits (URDF), the gains
+   * to >= 0 and the weight to [0, 1]. Each joint keeps its last command until a mode change or
+   * until none arrives for `external_joints.command_timeout` seconds (default 0.5); then its
+   * weight ramps down to 0 over `external_joints.release_time` seconds (default 0.2). A new
+   * command (e.g. a sender that keeps streaming over a mode change) takes it again at once. In a
+   * passive mode (`external_joints.off_modes`) the joint is given back at once.
+   * Thread safe; no ROS interface (vendor emulators call it).
+   * @return number of joints with a known name
+   */
+  std::size_t set_joint_commands(const std::vector<JointCommandOverride> & commands);
 
   /**
    * @brief Called (in the cycle thread) on every mode change
@@ -158,6 +190,7 @@ public:
 private:
   void apply_commands();
   void apply_external_joints();
+  void apply_command_overrides();
 
   // pluginlib loaders: declared first, destroyed after the plugins they created
   PluginLoader<HardwareInterface> hardware_loader_{"gaitos::HardwareInterface"};
@@ -214,6 +247,19 @@ private:
   std::vector<ExternalJoint> external_;
   std::string external_mode_;
   std::vector<JointTarget> external_inbox_;
+  struct CommandOverride
+  {
+    bool active{false};
+    bool releasing{false};   ///< blending out toward the controller
+    JointCommandOverride command;
+    double weight{0.0};      ///< current weight (the command's, or ramping down)
+    double stamp{0.0};
+  };
+  std::vector<CommandOverride> overrides_;
+  std::string override_mode_;
+  std::vector<JointCommandOverride> override_inbox_;
+  double override_timeout_{0.5};
+  double override_release_time_{0.2};
 
   // Command inbox
   mutable std::mutex inbox_mutex_;

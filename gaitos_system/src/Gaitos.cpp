@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <set>
 #include <thread>
 
@@ -129,6 +130,14 @@ void Gaitos::configure(const Params & config, std::shared_ptr<HardwareInterface>
       {modes_.safe_mode(), "zero_torque"});
   external_.assign(model_->joint_count(), ExternalJoint());
   external_mode_.clear();
+  override_timeout_ = ext.get<double>("command_timeout", 0.5);
+  override_release_time_ = ext.get<double>("release_time", 0.2);
+  if (override_timeout_ <= 0.0 || override_release_time_ < 0.0) {
+    throw std::runtime_error(
+            "external_joints: command_timeout must be > 0 and release_time >= 0");
+  }
+  overrides_.assign(model_->joint_count(), CommandOverride());
+  override_mode_.clear();
   hardware_->set_write_enabled(!dry_run_);
   if (dry_run_) {
     logger_.warn() << "DRY RUN: the hardware is read but no command is sent";
@@ -226,6 +235,17 @@ std::size_t Gaitos::set_joint_targets(const std::vector<JointTarget> & targets)
   return known;
 }
 
+std::size_t Gaitos::set_joint_commands(const std::vector<JointCommandOverride> & commands)
+{
+  std::size_t known = 0;
+  for (const auto & c : commands) {
+    known += model_ && model_->joint_index(c.name) ? 1 : 0;
+  }
+  std::lock_guard<std::mutex> lock(inbox_mutex_);
+  override_inbox_.insert(override_inbox_.end(), commands.begin(), commands.end());
+  return known;
+}
+
 bool Gaitos::external_joint_allowed(std::size_t joint, const std::string & mode) const
 {
   if (joint >= external_group_.size() ||
@@ -285,6 +305,82 @@ void Gaitos::apply_external_joints()
     state_.command.position[i] = e.setpoint;
     state_.command.velocity[i] = 0.0;
     state_.command.effort[i] = 0.0;
+  }
+}
+
+void Gaitos::apply_command_overrides()
+{
+  std::vector<JointCommandOverride> inbox;
+  {
+    std::lock_guard<std::mutex> lock(inbox_mutex_);
+    inbox.swap(override_inbox_);
+  }
+  if (overrides_.empty()) {
+    return;
+  }
+  const std::string & mode = state_.mode;
+  const bool mode_changed = mode != override_mode_;
+  override_mode_ = mode;
+  for (const auto & c : inbox) {
+    const auto idx = model_->joint_index(c.name);
+    if (!idx || !external_joint_allowed(*idx, mode)) {
+      continue;
+    }
+    if (!std::isfinite(c.position) || !std::isfinite(c.velocity) || !std::isfinite(c.effort) ||
+      !std::isfinite(c.kp) || !std::isfinite(c.kd) || !std::isfinite(c.weight))
+    {
+      logger_.warn() << "Joint command of " << c.name << " ignored: not finite";
+      continue;
+    }
+    const auto & info = model_->joint(*idx);
+    auto & o = overrides_[*idx];
+    o.command = c;
+    o.command.position = std::clamp(c.position, info.lower, info.upper);
+    if (info.velocity > 0.0) {
+      o.command.velocity = std::clamp(c.velocity, -info.velocity, info.velocity);
+    }
+    if (info.effort > 0.0) {
+      o.command.effort = std::clamp(c.effort, -info.effort, info.effort);
+    }
+    o.command.kp = std::max(0.0, c.kp);
+    o.command.kd = std::max(0.0, c.kd);
+    o.command.weight = std::clamp(c.weight, 0.0, 1.0);
+    o.weight = o.command.weight;
+    o.stamp = state_.time;
+    o.releasing = false;
+    o.active = true;
+  }
+  for (std::size_t i = 0; i < overrides_.size(); ++i) {
+    auto & o = overrides_[i];
+    if (!o.active) {
+      continue;
+    }
+    if (!external_joint_allowed(i, mode)) {   // passive or safe mode: give the joint back at once
+      o.active = false;
+      continue;
+    }
+    // A mode change or no update for command_timeout: hand the joint back to the controller,
+    // blending the last command out over release_time
+    if (!o.releasing && (mode_changed || state_.time - o.stamp > override_timeout_)) {
+      o.releasing = true;
+    }
+    if (o.releasing) {
+      o.weight -= override_release_time_ > 0.0 ? state_.dt / override_release_time_ : o.weight;
+      if (o.weight <= 0.0) {
+        o.active = false;
+        continue;
+      }
+    }
+    const double w = o.weight;
+    const auto blend = [w](double controller, double external) {
+        return (1.0 - w) * controller + w * external;
+      };
+    auto & cmd = state_.command;
+    cmd.position[i] = blend(cmd.position[i], o.command.position);
+    cmd.velocity[i] = blend(cmd.velocity[i], o.command.velocity);
+    cmd.effort[i] = blend(cmd.effort[i], o.command.effort);
+    cmd.kp[i] = blend(cmd.kp[i], o.command.kp);
+    cmd.kd[i] = blend(cmd.kd[i], o.command.kd);
   }
 }
 
@@ -407,6 +503,7 @@ bool Gaitos::step()
   }
 
   apply_external_joints();
+  apply_command_overrides();
 
   // Gain ramp when the robot leaves a passive mode: stiffness and feedforward from 0
   if (state_.mode != previous_mode_) {

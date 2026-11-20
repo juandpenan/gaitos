@@ -10,6 +10,7 @@
 | Watchdog | `safety.watchdog_timeout` | If the cycle stalls, another thread calls the hardware `emergency_stop()` (damped joints). |
 | Remote | `teleop` | Unitree wireless controller (`LowState.wireless_remote`) or `sensor_msgs/Joy` (`teleop.joy`): emergency stop `L2+B`, modes on button combinations, twist from the sticks. |
 | Falls | `safety.max_tilt` | Tilt over the limit → safe mode. |
+| External joint commands | `external_joints.*` | `set_joint_commands` (vendor emulators): non-finite commands ignored; position, speed and torque within the URDF limits; gains ≥ 0 with no upper limit; back to the controller over `release_time` after `command_timeout` or a mode change, at once in a passive mode. |
 
 The Unitree parameter files enable the ramp (1.5 s), the watchdog (0.1 s) and the remote
 (Go2: `L2+A` stand_up, `L2+X` stand_down, `L1+A` recovery_stand, `START` balance_stand,

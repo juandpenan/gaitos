@@ -128,3 +128,98 @@ TEST(System, NaoDescriptionRuns)
     EXPECT_DOUBLE_EQ(g.state().motor_command.kp[i], 0.8);
   }
 }
+
+TEST(System, JointCommandOverridesBlendAndRelease)
+{
+  Gaitos g;
+  g.configure(testutil::make_params(testutil::robot_files(std::string(GAITOS_SOURCE_DIR), "nao", {"gaitos/params/nao_fake.yaml"})));
+  ASSERT_TRUE(g.start());
+  ASSERT_TRUE(request(g, "stand_init").success);
+  run(g, 0.5);
+  const auto i = *g.model()->joint_index("HeadYaw");
+  const double controller_kp = g.state().command.kp[i];   // what the controller commands alone
+  const double controller_effort = g.state().command.effort[i];
+  ASSERT_NE(controller_kp, 5.0);
+
+  JointCommandOverride c;
+  c.name = "HeadYaw";
+  c.position = 0.3;
+  c.velocity = 0.1;
+  c.effort = 0.2;
+  c.kp = 5.0;
+  c.kd = 0.5;
+  c.weight = 1.0;
+  JointCommandOverride unknown = c;
+  unknown.name = "NoSuchJoint";
+  EXPECT_EQ(g.set_joint_commands({c, unknown}), 1u);
+  g.step();
+  EXPECT_DOUBLE_EQ(g.state().command.position[i], 0.3);
+  EXPECT_DOUBLE_EQ(g.state().command.velocity[i], 0.1);
+  EXPECT_DOUBLE_EQ(g.state().command.effort[i], 0.2);
+  EXPECT_DOUBLE_EQ(g.state().command.kp[i], 5.0);
+  EXPECT_DOUBLE_EQ(g.state().command.kd[i], 0.5);
+
+  // Not finite: ignored, the previous command stays
+  JointCommandOverride bad = c;
+  bad.position = std::nan("");
+  bad.kp = 50.0;
+  g.set_joint_commands({bad});
+  g.step();
+  EXPECT_DOUBLE_EQ(g.state().command.kp[i], 5.0);
+
+  // Out of the joint limits: clamped
+  JointCommandOverride big = c;
+  big.position = 100.0;
+  big.effort = 1e6;
+  g.set_joint_commands({big});
+  g.step();
+  EXPECT_DOUBLE_EQ(g.state().command.position[i], g.model()->joint(i).upper);
+  EXPECT_LE(g.state().command.effort[i], g.model()->joint(i).effort);
+
+  c.weight = 0.5;   // half the controller, half the override
+  g.set_joint_commands({c});
+  g.step();
+  EXPECT_NEAR(g.state().command.kp[i], 0.5 * controller_kp + 2.5, 1e-9);
+  EXPECT_NEAR(g.state().command.effort[i], 0.5 * controller_effort + 0.1, 1e-9);
+
+  // No update for command_timeout (0.5 s): blended out over release_time (0.2 s)
+  c.weight = 1.0;
+  g.set_joint_commands({c});
+  run(g, 0.6);
+  const double kp_releasing = g.state().command.kp[i];
+  EXPECT_GT(std::abs(kp_releasing - controller_kp), 1e-6);   // not back yet
+  run(g, 0.2);
+  EXPECT_NEAR(g.state().command.kp[i], controller_kp, 1e-9);  // back to the controller
+}
+
+TEST(System, JointCommandOverridesEndOnModeChange)
+{
+  Gaitos g;
+  g.configure(testutil::make_params(testutil::robot_files(std::string(GAITOS_SOURCE_DIR), "nao", {"gaitos/params/nao_fake.yaml"})));
+  ASSERT_TRUE(g.start());
+  ASSERT_TRUE(request(g, "stand_init").success);
+  run(g, 0.5);
+  const auto i = *g.model()->joint_index("HeadYaw");
+  JointCommandOverride c;
+  c.name = "HeadYaw";
+  c.kp = 5.0;
+  g.set_joint_commands({c});
+  g.step();
+  EXPECT_DOUBLE_EQ(g.state().command.kp[i], 5.0);
+  ASSERT_TRUE(request(g, "damp").success);
+  run(g, 0.3);   // more than release_time
+  JointCommandOverride later = c;
+  later.kp = 7.0;   // in damp (a passive mode for the NAO: its safe mode) commands are refused
+  g.set_joint_commands({later});
+  g.step();
+  EXPECT_NE(g.state().command.kp[i], 5.0);
+  EXPECT_NE(g.state().command.kp[i], 7.0);
+}
+
+TEST(System, JointCommandTimeoutMustBePositive)
+{
+  Gaitos g;
+  auto files = testutil::robot_files(std::string(GAITOS_SOURCE_DIR), "nao", {"gaitos/params/nao_fake.yaml"});
+  files.push_back(testutil::overrides("external_joints: {command_timeout: 0.0}"));
+  EXPECT_THROW(g.configure(testutil::make_params(files)), std::runtime_error);
+}
