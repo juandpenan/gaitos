@@ -41,6 +41,12 @@
     <joint name="head_pitch_joint"/>
     <joint name="head_yaw_joint"/>
   </group>
+  <!-- The joints Unitree's arm_sdk drives over the walking controller (arm_control_routine) -->
+  <group name="arm_sdk">
+    <group name="arms"/>
+    <joint name="waist_yaw_joint"/>
+    <group name="head"/>
+  </group>
   <group name="all">
     <group name="legs"/>
     <group name="waist"/>

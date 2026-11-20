@@ -1,0 +1,15 @@
+# arm_sdk of the R1 in simulation (sim.launch.py arm_sdk:=true): the upper body commands of
+# /arm_sdk go over the walking controller, as on the robot (unitree_r1's r1_arm, xr_teleoperate).
+/**:
+  ros__parameters:
+    # Joints applications may command over the controllers: the ones arm_sdk drives
+    # (a list: it replaces the groups of the earlier files; add them here if the R1 gets others)
+    external_joints:
+      groups: [arm_sdk]
+      command_timeout: 0.5   # [s] an arm_sdk joint without commands goes back to the controller,
+      release_time: 0.2      #     blended out over release_time [s]
+    extensions:
+      unitree:
+        arm_sdk:
+          enabled: true
+          # joints: [...]     # default: the SRDF group arm_sdk (arms, waist yaw, head)

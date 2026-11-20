@@ -3,10 +3,13 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <atomic>
+#include <cmath>
 #include <chrono>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include "gaitos_system/Gaitos.hpp"
 #include "gaitos_system/testing.hpp"
@@ -33,11 +36,15 @@ template<typename Emulator>
 class RobotTest : public ::testing::Test
 {
 protected:
-  void start(const std::string & robot, const std::string & backend, const std::string & extra)
+  void start(
+    const std::string & robot, const std::string & backend, const std::string & extra,
+    const std::vector<std::string> & more_files = {})
   {
     const std::string src = GAITOS_SOURCE_DIR;
-    auto files = testutil::robot_files(src, robot, {backend,
-        "gaitos_unitree_sim/params/" + robot + "_unitree_sim.yaml"});
+    std::vector<std::string> sources{backend,
+      "gaitos_unitree_sim/params/" + robot + "_unitree_sim.yaml"};
+    sources.insert(sources.end(), more_files.begin(), more_files.end());
+    auto files = testutil::robot_files(src, robot, sources);
     files.push_back(testutil::overrides(extra));
     const auto root = testutil::make_params(files);
     core.configure(root);
@@ -101,6 +108,34 @@ protected:
     EXPECT_EQ(r.code, 0);
     return nlohmann::json::parse(r.data).at("data").get<int>();
   }
+};
+
+/// R1 emulator with arm_sdk (params/r1_arm_sdk.yaml)
+class ArmSdkTest : public EmulatorTest
+{
+protected:
+  void SetUp() override
+  {
+    start("r1", "gaitos/params/fake.yaml", "hardware: {base_height: 0.75}\ninitial_mode: damp",
+      {"gaitos_unitree_sim/params/r1_arm_sdk.yaml"});
+  }
+
+  /// An arm_sdk command as unitree_r1's r1_arm sends it: weight in mode_pr, the left shoulder
+  /// pitch (motor slot 15) to `q`
+  static unitree_hg::msg::LowCmd command(uint8_t weight, float q)
+  {
+    unitree_hg::msg::LowCmd msg;
+    msg.mode_pr = weight;
+    auto & m = msg.motor_cmd[15];
+    m.q = q;
+    m.dq = 0.0f;
+    m.tau = 1.5f;
+    m.kp = 40.0f;
+    m.kd = 1.0f;
+    return msg;
+  }
+
+  std::size_t joint(const std::string & name) {return *core.model()->joint_index(name);}
 };
 
 /// Go2 (unitree_go) emulator
@@ -260,4 +295,50 @@ TEST_F(Go2EmulatorTest, StateInRobotOrder)
   EXPECT_LT(st.foot_position_body[2], 0.0f);
   EXPECT_LT(st.foot_position_body[9], 0.0f);
   EXPECT_GT(st.foot_position_body[10], 0.0f);
+}
+
+TEST_F(ArmSdkTest, IgnoredOutsideTheWalkingFsm)
+{
+  ASSERT_TRUE(wait_mode("damp"));
+  EXPECT_TRUE(emulator.arm_sdk_commands(command(100, 0.5f)).empty());
+  EXPECT_EQ(get_fsm(), 1);
+}
+
+TEST_F(ArmSdkTest, DrivesTheUpperBody)
+{
+  ASSERT_EQ(set_fsm(4).code, 0);
+  ASSERT_TRUE(wait_mode("stand_up"));
+  ASSERT_EQ(set_fsm(811).code, 0);
+  ASSERT_TRUE(wait_mode("balance_stand"));
+
+  const auto commands = emulator.arm_sdk_commands(command(100, 0.5f));
+  ASSERT_EQ(commands.size(), 13u);   // arms, waist yaw, head
+  const auto it = std::find_if(commands.begin(), commands.end(),
+      [](const gaitos::JointCommandOverride & c) {return c.name == "left_shoulder_pitch_joint";});
+  ASSERT_NE(it, commands.end());
+  EXPECT_DOUBLE_EQ(it->position, 0.5);
+  EXPECT_DOUBLE_EQ(it->effort, 1.5);
+  EXPECT_DOUBLE_EQ(it->kp, 40.0);
+  EXPECT_DOUBLE_EQ(it->weight, 1.0);
+  EXPECT_EQ(core.set_joint_commands(commands), 13u);
+  const auto i = joint("left_shoulder_pitch_joint");
+  bool applied = false;
+  for (int k = 0; k < 200 && !applied; ++k) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    const auto s = core.snapshot();
+    applied = std::abs(s.command.position[i] - 0.5) < 1e-6 && std::abs(s.command.kp[i] - 40.0) < 1e-6;
+  }
+  EXPECT_TRUE(applied);
+}
+
+TEST_F(ArmSdkTest, PartialWeightBlendsWithTheController)
+{
+  ASSERT_EQ(set_fsm(4).code, 0);
+  ASSERT_TRUE(wait_mode("stand_up"));
+  ASSERT_EQ(set_fsm(811).code, 0);
+  ASSERT_TRUE(wait_mode("balance_stand"));
+  const auto commands = emulator.arm_sdk_commands(command(50, 0.5f));
+  for (const auto & c : commands) {
+    EXPECT_DOUBLE_EQ(c.weight, 0.5);
+  }
 }

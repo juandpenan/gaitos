@@ -4,6 +4,7 @@
 
     ros2 launch gaitos_unitree_sim sim.launch.py [robot:=r1|go2] [simulator:=mujoco|gazebo]
                                                  [headless:=true] [bringup:=true]
+                                                 [arm_sdk:=true]
 
 gaitos runs the simulator in the namespace `gaitos` (its own mode / status topics) and, through
 its emulator extension, publishes and serves what the robot does:
@@ -11,6 +12,7 @@ its emulator extension, publishes and serves what the robot does:
    /arm/action/state, /api/sport (FSM, SetVelocity) and /api/arm. The robot state (TF,
    joint_states, robot_description) is left to unitree_r1: bringup:=true also starts its
    r1_core (r1_state, robot_state_publisher, r1_locomotion, r1_gesture) if it is installed.
+   arm_sdk:=true also takes the upper body commands of /arm_sdk (params/r1_arm_sdk.yaml).
  - go2 (UnitreeGoEmulator): /lowstate, /lf/lowstate, /sportmodestate, /lf/sportmodestate and
    /api/sport (StandUp, BalanceStand, Move, Euler...); gaitos also publishes its own state
    (TF, joint_states with robot_state_publisher) in /gaitos.
@@ -34,6 +36,13 @@ def launch_setup(context):
     emulator = os.path.join(get_package_share_directory('gaitos_unitree_sim'), 'params',
                             f'{robot}_unitree_sim.yaml')
     extra = [p.strip() for p in LaunchConfiguration('params').perform(context).split(',') if p.strip()]
+    # Optional R1 interfaces, before the user's files so that those still override them
+    for flag, file in (('arm_sdk', 'r1_arm_sdk.yaml'),):
+        if LaunchConfiguration(flag).perform(context) == 'true':
+            if robot != 'r1':
+                raise RuntimeError(f'{flag}:=true is only for robot:=r1')
+            extra.insert(0, os.path.join(get_package_share_directory('gaitos_unitree_sim'),
+                                         'params', file))
     # The R1 state is published by unitree_r1; the Go2 one by gaitos itself
     state_by_gaitos = robot != 'r1'
     args = {'robot': robot, 'namespace': LaunchConfiguration('namespace').perform(context),
@@ -64,5 +73,7 @@ def generate_launch_description():
         DeclareLaunchArgument('headless', default_value='false', description='Gazebo only'),
         DeclareLaunchArgument('bringup', default_value='false',
                               description='r1: also start r1_core of unitree_r1'),
+        DeclareLaunchArgument('arm_sdk', default_value='false',
+                              description='r1: emulate arm_sdk (upper body commands)'),
         OpaqueFunction(function=launch_setup),
     ])
