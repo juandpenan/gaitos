@@ -38,9 +38,15 @@ ros2 topic pub -r 10 /r1/cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.3}}"
 | `/api/sport`: GetFsmId, SetFsmId | gaitos mode ↔ FSM (`fsm.*`): 0 `zero_torque`, 1 `damp`, 4 `stand_up`, 811 `balance_stand` / `locomotion_lipm` |
 | `/api/sport`: SetVelocity | body twist kept for its `duration`, only in FSM 811 |
 | `/api/arm` | empty action list; the actions answer 3203 (not implemented) |
+| `/arm_sdk` (`unitree_hg/LowCmd`), with `arm_sdk:=true` | in the walking FSM only: q, dq, tau, kp, kd of the arms, waist yaw and head (SRDF group `arm_sdk`) blended over the walking controller by the weight in `mode_pr` (`Gaitos::set_joint_commands`). ([`params/r1_arm_sdk.yaml`](../gaitos_unitree_sim/params/r1_arm_sdk.yaml)) |
 
-Not emulated yet: `arm_sdk` (arms while walking), the Dex3 hands. The walking is the gaitos
-LIPM: unitree_r1 asks for at least 0.3 m/s, the controller caps it at 0.15 m/s.
+```bash
+ros2 launch gaitos_unitree_sim sim.launch.py robot:=r1 bringup:=true arm_sdk:=true
+```
+
+Not emulated yet: the Dex3 hands. The walking is the gaitos LIPM: unitree_r1 asks for at least
+0.3 m/s, the controller caps it at 0.15 m/s. The MuJoCo R1 has no hands: a gravity compensation
+computed with the Dex3 masses (e.g. unitree_r1's r1_arm) over-compensates the arms there.
 
 **Go2** (`UnitreeGoEmulator`). gaitos also publishes its own state in `/gaitos` (TF,
 joint_states, robot_state_publisher). The sport service takes the JSON of the official

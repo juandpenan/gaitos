@@ -61,6 +61,46 @@ void UnitreeHgEmulator::configure_robot(const gaitos::Params & p)
   arm_state_pub_ = n.create_publisher<std_msgs::msg::String>(
     topic("arm_state", "/arm/action/state"), state_qos());
 
+  // arm_sdk: upper body commands over the walking controller
+  const gaitos::Params arm = p.sub("arm_sdk");
+  arm_sdk_joints_.clear();
+  if (arm.get<bool>("enabled", false)) {
+    const auto & model = *core().model();
+    for (const auto & name : arm.get<std::vector<std::string>>("joints", {})) {
+      const auto idx = model.joint_index(name);
+      if (!idx) {
+        throw std::runtime_error("unitree emulator: arm_sdk joint '" + name + "' is not in the model");
+      }
+      if (motor_of_joint_[*idx] < 0) {
+        throw std::runtime_error("unitree emulator: arm_sdk joint '" + name + "' has no motor slot");
+      }
+      arm_sdk_joints_.push_back(*idx);
+    }
+    if (arm_sdk_joints_.empty()) {   // default: the joints of the SRDF group arm_sdk
+      for (const auto i : model.group_indices("arm_sdk")) {
+        if (motor_of_joint_[i] >= 0) {
+          arm_sdk_joints_.push_back(i);
+        }
+      }
+    }
+    for (const auto i : arm_sdk_joints_) {   // gaitos would drop their commands
+      if (!core().external_joint_allowed(i, walking_modes_.front())) {
+        RCLCPP_WARN(n.get_logger(), "unitree emulator: arm_sdk joint '%s' is not in "
+          "external_joints.groups: its commands are ignored (see params/r1_arm_sdk.yaml)",
+          model.joint(i).name.c_str());
+      }
+    }
+    // The robot's reader is best effort, depth 1 (unitree_r1 and the SDK publish so)
+    arm_sdk_sub_ = n.create_subscription<unitree_hg::msg::LowCmd>(
+      topic("arm_sdk", "/arm_sdk"), rclcpp::QoS(1).best_effort(),
+      [this](const unitree_hg::msg::LowCmd & msg) {
+        const auto commands = arm_sdk_commands(msg);
+        if (!commands.empty()) {
+          core().set_joint_commands(commands);
+        }
+      });
+  }
+
   add_service("sport", p.get<std::string>("versions.sport", "1.0.0.1"),
     [this](int64_t id, const std::string & prm) {return handle_sport(id, prm);});
   add_service("arm", p.get<std::string>("versions.arm", "1.0.0.1"),
@@ -103,6 +143,35 @@ void UnitreeHgEmulator::configure_robot(const gaitos::Params & p)
   RCLCPP_INFO(n.get_logger(), "unitree emulator (hg): %s, %s, %s/sport and %s/arm",
     lowstate_pub_->get_topic_name(), odom_pub_->get_topic_name(), api_prefix_.c_str(),
     api_prefix_.c_str());
+  if (arm_sdk_sub_) {
+    RCLCPP_INFO(n.get_logger(), "unitree emulator (hg): arm_sdk on %s, %zu joints",
+      arm_sdk_sub_->get_topic_name(), arm_sdk_joints_.size());
+  }
+}
+
+std::vector<gaitos::JointCommandOverride> UnitreeHgEmulator::arm_sdk_commands(
+  const unitree_hg::msg::LowCmd & msg)
+{
+  std::vector<gaitos::JointCommandOverride> out;
+  // The robot ignores arm_sdk outside the walking FSM (811)
+  if (arm_sdk_joints_.empty() || !walking()) {
+    return out;
+  }
+  const double weight = std::clamp(static_cast<double>(msg.mode_pr) / 100.0, 0.0, 1.0);
+  const auto & model = *core().model();
+  for (const auto i : arm_sdk_joints_) {
+    const auto & m = msg.motor_cmd[static_cast<std::size_t>(motor_of_joint_[i])];
+    gaitos::JointCommandOverride c;
+    c.name = model.joint(i).name;
+    c.position = m.q;
+    c.velocity = m.dq;
+    c.effort = m.tau;
+    c.kp = m.kp;
+    c.kd = m.kd;
+    c.weight = weight;
+    out.push_back(c);
+  }
+  return out;
 }
 
 std::optional<int> UnitreeHgEmulator::fsm_of_mode(const std::string & mode) const

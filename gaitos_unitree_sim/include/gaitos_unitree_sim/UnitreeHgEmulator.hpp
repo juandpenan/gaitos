@@ -15,6 +15,7 @@
 #include "unitree_go/msg/sport_mode_state.hpp"
 #include "unitree_hg/msg/bms_state.hpp"
 #include "unitree_hg/msg/imu_state.hpp"
+#include "unitree_hg/msg/low_cmd.hpp"
 #include "unitree_hg/msg/low_state.hpp"
 
 namespace gaitos_unitree_sim
@@ -50,7 +51,13 @@ constexpr int64_t kStopCustomAction = 7113;
  *    gaitos mode, `fsm.ids` / `fsm.modes`), SetVelocity 7105 ({"velocity": [vx, vy, wz],
  *    "duration": s}, only in `walking_modes`), SetSpeedMode 7107 (accepted, no effect)
  *  - arm: GetActionList 7107 (empty), StopCustomAction 7113 (ok); the actions answer 3203
- * Not emulated: arm_sdk, the Dex3 hands, the CRC of lowstate (0).
+ * arm_sdk (`arm_sdk.enabled`, default false): the upper body commands of `/arm_sdk`
+ * (unitree_hg/LowCmd: q, dq, tau, kp, kd of the motor slots, weight in mode_pr 0..100) go
+ * over the walking controller with Gaitos::set_joint_commands(), only in the walking modes
+ * (an R1 in damp or zero torque ignores arm_sdk). The joints must be in
+ * `external_joints.groups` of gaitos (the SRDF group arm_sdk).
+ *
+ * Not emulated: the Dex3 hands, the CRC of lowstate (0).
  */
 class UnitreeHgEmulator : public UnitreeEmulatorBase
 {
@@ -61,6 +68,10 @@ public:
   Reply handle_arm(int64_t api_id, const std::string & parameter);
   void fill_lowstate(const gaitos::Snapshot & s, unitree_hg::msg::LowState & msg) const;
   bool fill_odometry(const gaitos::Snapshot & s, unitree_go::msg::SportModeState & msg) const;
+  /// arm_sdk command -> joint commands for gaitos, one per arm_sdk joint, with the weight of
+  /// mode_pr (also 0: the release ramp of a client ends with it); empty outside the walking
+  /// modes or when arm_sdk is disabled
+  std::vector<gaitos::JointCommandOverride> arm_sdk_commands(const unitree_hg::msg::LowCmd & msg);
 
 protected:
   void configure_robot(const gaitos::Params & params) override;
@@ -70,6 +81,11 @@ private:
   uint8_t mode_machine_{0};
   std::vector<std::pair<int, std::string>> fsm_requests_;   ///< FSM id -> mode to request
   std::map<std::string, int> fsm_reports_;                  ///< mode -> FSM id reported
+
+  // arm_sdk
+  std::vector<std::size_t> arm_sdk_joints_;   ///< model joints driven through arm_sdk
+  rclcpp::Subscription<unitree_hg::msg::LowCmd>::SharedPtr arm_sdk_sub_;
+
 
   rclcpp::Publisher<unitree_hg::msg::LowState>::SharedPtr lowstate_pub_;
   rclcpp::Publisher<unitree_hg::msg::IMUState>::SharedPtr imu_pub_;
