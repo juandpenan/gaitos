@@ -100,6 +100,7 @@ protected:
   void stop_velocity();
 
   rclcpp_lifecycle::LifecycleNode & node() {return *node_;}
+  const rclcpp_lifecycle::LifecycleNode & node() const {return *node_;}
   gaitos::Gaitos & core() {return *core_;}
   const gaitos::Gaitos & core() const {return *core_;}
   rclcpp::QoS state_qos() const {return rclcpp::SensorDataQoS();}

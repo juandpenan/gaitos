@@ -73,7 +73,7 @@ ros2 topic pub -r 10 /r1/cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.3}}"
 
 `bringup:=true` starts `r1_core` of unitree_r1 (r1_state, robot_state_publisher, r1_locomotion,
 r1_gesture) in `/r1`; the gaitos node is in `/gaitos`. unitree_r1 asks for at least 0.3 m/s, the
-LIPM caps it at 0.15 m/s. `arm_sdk:=true` adds the arms (`arm_sdk`), see
+LIPM caps it at 0.15 m/s. `arm_sdk:=true` adds the arms (`arm_sdk`, FSM 816 while held), see
 [Vendor interfaces](../emulators.md). Not emulated: the Dex3 hands.
 
 ## 6. Known issues

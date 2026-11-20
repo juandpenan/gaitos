@@ -13,3 +13,9 @@
         arm_sdk:
           enabled: true
           # joints: [...]     # default: the SRDF group arm_sdk (arms, waist yaw, head)
+          timeout: 0.5        # [s] the arms count as held while commands with weight > 0 arrive
+          # What an R1 answered while arm_sdk held its arms (tests 2026-11, not documented by
+          # Unitree): GetFsmId 816, SetVelocity refused (127), SetFsmId(811) refused (1001)
+          held_fsm: 816
+          velocity_code: 127
+          fsm_code: 1001

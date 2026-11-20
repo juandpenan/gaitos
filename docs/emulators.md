@@ -38,7 +38,7 @@ ros2 topic pub -r 10 /r1/cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.3}}"
 | `/api/sport`: GetFsmId, SetFsmId | gaitos mode ↔ FSM (`fsm.*`): 0 `zero_torque`, 1 `damp`, 4 `stand_up`, 811 `balance_stand` / `locomotion_lipm` |
 | `/api/sport`: SetVelocity | body twist kept for its `duration`, only in FSM 811 |
 | `/api/arm` | empty action list; the actions answer 3203 (not implemented) |
-| `/arm_sdk` (`unitree_hg/LowCmd`), with `arm_sdk:=true` | in the walking FSM only: q, dq, tau, kp, kd of the arms, waist yaw and head (SRDF group `arm_sdk`) blended over the walking controller by the weight in `mode_pr` (`Gaitos::set_joint_commands`). ([`params/r1_arm_sdk.yaml`](../gaitos_unitree_sim/params/r1_arm_sdk.yaml)) |
+| `/arm_sdk` (`unitree_hg/LowCmd`), with `arm_sdk:=true` | in the walking FSM only: q, dq, tau, kp, kd of the arms, waist yaw and head (SRDF group `arm_sdk`) blended over the walking controller by the weight in `mode_pr` (`Gaitos::set_joint_commands`). While the weight is above 0: GetFsmId 816, SetVelocity refused (127), SetFsmId(811) refused (1001), what an R1 answered in tests ([`params/r1_arm_sdk.yaml`](../gaitos_unitree_sim/params/r1_arm_sdk.yaml)) |
 
 ```bash
 ros2 launch gaitos_unitree_sim sim.launch.py robot:=r1 bringup:=true arm_sdk:=true
