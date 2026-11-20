@@ -4,6 +4,8 @@
 #ifndef GAITOS_UNITREE_SIM__UNITREEHGEMULATOR_HPP_
 #define GAITOS_UNITREE_SIM__UNITREEHGEMULATOR_HPP_
 
+#include <atomic>
+#include <cstdint>
 #include <map>
 #include <optional>
 #include <string>
@@ -54,8 +56,11 @@ constexpr int64_t kStopCustomAction = 7113;
  * arm_sdk (`arm_sdk.enabled`, default false): the upper body commands of `/arm_sdk`
  * (unitree_hg/LowCmd: q, dq, tau, kp, kd of the motor slots, weight in mode_pr 0..100) go
  * over the walking controller with Gaitos::set_joint_commands(), only in the walking modes
- * (an R1 in damp or zero torque ignores arm_sdk). The joints must be in
- * `external_joints.groups` of gaitos (the SRDF group arm_sdk).
+ * (an R1 in damp or zero torque ignores arm_sdk). While commands with a weight above 0 arrive
+ * the robot is "held": GetFsmId reports `arm_sdk.held_fsm` (816), SetVelocity is refused with
+ * `arm_sdk.velocity_code` (127) and SetFsmId(811) with `arm_sdk.fsm_code` (1001). These
+ * codes are what an R1 answered in tests (2026-11), not documented values. The joints must be
+ * in `external_joints.groups` of gaitos (the SRDF group arm_sdk).
  *
  * Not emulated: the Dex3 hands, the CRC of lowstate (0).
  */
@@ -70,8 +75,11 @@ public:
   bool fill_odometry(const gaitos::Snapshot & s, unitree_go::msg::SportModeState & msg) const;
   /// arm_sdk command -> joint commands for gaitos, one per arm_sdk joint, with the weight of
   /// mode_pr (also 0: the release ramp of a client ends with it); empty outside the walking
-  /// modes or when arm_sdk is disabled
+  /// modes or when arm_sdk is disabled. Updates held().
   std::vector<gaitos::JointCommandOverride> arm_sdk_commands(const unitree_hg::msg::LowCmd & msg);
+  /// The arms are held through arm_sdk: in a walking mode, and a command with weight > 0
+  /// arrived less than `arm_sdk.timeout` ago
+  bool held() const;
 
 protected:
   void configure_robot(const gaitos::Params & params) override;
@@ -84,6 +92,11 @@ private:
 
   // arm_sdk
   std::vector<std::size_t> arm_sdk_joints_;   ///< model joints driven through arm_sdk
+  double arm_sdk_timeout_{0.5};
+  int held_fsm_{816};
+  int32_t held_velocity_code_{127};
+  int32_t held_fsm_code_{1001};
+  std::atomic<double> last_held_{-1.0};   ///< node time of the last command with weight > 0
   rclcpp::Subscription<unitree_hg::msg::LowCmd>::SharedPtr arm_sdk_sub_;
 
 

@@ -74,6 +74,6 @@ def generate_launch_description():
         DeclareLaunchArgument('bringup', default_value='false',
                               description='r1: also start r1_core of unitree_r1'),
         DeclareLaunchArgument('arm_sdk', default_value='false',
-                              description='r1: emulate arm_sdk (upper body commands)'),
+                              description='r1: emulate arm_sdk (upper body commands, FSM 816)'),
         OpaqueFunction(function=launch_setup),
     ])

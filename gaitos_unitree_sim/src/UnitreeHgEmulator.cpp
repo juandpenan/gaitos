@@ -90,6 +90,13 @@ void UnitreeHgEmulator::configure_robot(const gaitos::Params & p)
           model.joint(i).name.c_str());
       }
     }
+    arm_sdk_timeout_ = arm.get<double>("timeout", 0.5);
+    if (arm_sdk_timeout_ <= 0.0) {
+      throw std::runtime_error("unitree emulator: arm_sdk.timeout must be > 0");
+    }
+    held_fsm_ = arm.get<int>("held_fsm", 816);
+    held_velocity_code_ = arm.get<int>("velocity_code", 127);
+    held_fsm_code_ = arm.get<int>("fsm_code", 1001);
     // The robot's reader is best effort, depth 1 (unitree_r1 and the SDK publish so)
     arm_sdk_sub_ = n.create_subscription<unitree_hg::msg::LowCmd>(
       topic("arm_sdk", "/arm_sdk"), rclcpp::QoS(1).best_effort(),
@@ -149,15 +156,24 @@ void UnitreeHgEmulator::configure_robot(const gaitos::Params & p)
   }
 }
 
+bool UnitreeHgEmulator::held() const
+{
+  const double last = last_held_;
+  return last >= 0.0 && walking() &&
+         node().now().seconds() - last <= arm_sdk_timeout_;
+}
+
 std::vector<gaitos::JointCommandOverride> UnitreeHgEmulator::arm_sdk_commands(
   const unitree_hg::msg::LowCmd & msg)
 {
   std::vector<gaitos::JointCommandOverride> out;
   // The robot ignores arm_sdk outside the walking FSM (811)
   if (arm_sdk_joints_.empty() || !walking()) {
+    last_held_ = -1.0;
     return out;
   }
   const double weight = std::clamp(static_cast<double>(msg.mode_pr) / 100.0, 0.0, 1.0);
+  last_held_ = weight > 0.0 ? node().now().seconds() : -1.0;
   const auto & model = *core().model();
   for (const auto i : arm_sdk_joints_) {
     const auto & m = msg.motor_cmd[static_cast<std::size_t>(motor_of_joint_[i])];
@@ -198,10 +214,13 @@ Reply UnitreeHgEmulator::handle_sport(int64_t api_id, const std::string & parame
   Reply r;
   switch (api_id) {
     case hg::kGetFsmId: {
-        const auto fsm = fsm_of_mode(core().snapshot().mode);
+        auto fsm = fsm_of_mode(core().snapshot().mode);
         if (!fsm) {
           r.code = code::kRejected;   // a gaitos mode with no FSM
           return r;
+        }
+        if (held()) {
+          fsm = held_fsm_;   // the R1 switches to 816 while arm_sdk holds the arms
         }
         nlohmann::json js;
         js["data"] = *fsm;
@@ -219,6 +238,10 @@ Reply UnitreeHgEmulator::handle_sport(int64_t api_id, const std::string & parame
         const auto mode = mode_of_fsm(fsm);
         if (!mode) {
           r.code = code::kBadParameter;
+          return r;
+        }
+        if (held() && fsm == 811) {
+          r.code = held_fsm_code_;   // no walking FSM while the arms are held
           return r;
         }
         return request_mode(*mode);
@@ -239,6 +262,10 @@ Reply UnitreeHgEmulator::handle_sport(int64_t api_id, const std::string & parame
         }
         if (!walking()) {
           r.code = code::kRejected;   // the robot only walks in FSM 811
+          return r;
+        }
+        if (held()) {
+          r.code = held_velocity_code_;   // nor while arm_sdk holds the arms (FSM 816)
           return r;
         }
         keep_velocity(v, duration);

@@ -116,7 +116,10 @@ class ArmSdkTest : public EmulatorTest
 protected:
   void SetUp() override
   {
-    start("r1", "gaitos/params/fake.yaml", "hardware: {base_height: 0.75}\ninitial_mode: damp",
+    // A long timeout: the test must not depend on how fast the machine runs it
+    start("r1", "gaitos/params/fake.yaml",
+      "hardware: {base_height: 0.75}\ninitial_mode: damp\n"
+      "extensions: {unitree: {arm_sdk: {timeout: 30.0}}}",
       {"gaitos_unitree_sim/params/r1_arm_sdk.yaml"});
   }
 
@@ -331,6 +334,29 @@ TEST_F(ArmSdkTest, DrivesTheUpperBody)
   EXPECT_TRUE(applied);
 }
 
+TEST_F(ArmSdkTest, HoldReportsFsm816AndRefusesToWalk)
+{
+  ASSERT_EQ(set_fsm(4).code, 0);
+  ASSERT_TRUE(wait_mode("stand_up"));
+  ASSERT_EQ(set_fsm(811).code, 0);
+  ASSERT_TRUE(wait_mode("balance_stand"));
+  emulator.arm_sdk_commands(command(100, 0.5f));
+
+  // Held: the R1 reports 816 and refuses to walk
+  EXPECT_TRUE(emulator.held());
+  EXPECT_EQ(get_fsm(), 816);
+  EXPECT_EQ(emulator.handle_sport(hg::kSetVelocity,
+    R"({"velocity": [0.3, 0.0, 0.0], "duration": 0.5})").code, 127);
+  EXPECT_EQ(set_fsm(811).code, 1001);
+
+  // Released (weight 0): back to 811, walking allowed
+  EXPECT_EQ(emulator.arm_sdk_commands(command(0, 0.5f)).size(), 13u);
+  EXPECT_FALSE(emulator.held());
+  EXPECT_EQ(get_fsm(), 811);
+  EXPECT_EQ(emulator.handle_sport(hg::kSetVelocity,
+    R"({"velocity": [0.1, 0.0, 0.0], "duration": 0.5})").code, 0);
+}
+
 TEST_F(ArmSdkTest, PartialWeightBlendsWithTheController)
 {
   ASSERT_EQ(set_fsm(4).code, 0);
@@ -342,3 +368,18 @@ TEST_F(ArmSdkTest, PartialWeightBlendsWithTheController)
     EXPECT_DOUBLE_EQ(c.weight, 0.5);
   }
 }
+
+TEST_F(ArmSdkTest, NotHeldOutsideTheWalkingModes)
+{
+  ASSERT_EQ(set_fsm(4).code, 0);
+  ASSERT_TRUE(wait_mode("stand_up"));
+  ASSERT_EQ(set_fsm(811).code, 0);
+  ASSERT_TRUE(wait_mode("balance_stand"));
+  emulator.arm_sdk_commands(command(100, 0.2f));
+  EXPECT_TRUE(emulator.held());
+  ASSERT_EQ(set_fsm(1).code, 0);   // damp: the hold ends with the walking mode
+  ASSERT_TRUE(wait_mode("damp"));
+  EXPECT_FALSE(emulator.held());
+  EXPECT_EQ(get_fsm(), 1);
+}
+
