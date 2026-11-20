@@ -13,6 +13,7 @@
 
 #include "gaitos_system/Gaitos.hpp"
 #include "gaitos_system/testing.hpp"
+#include "gaitos_unitree_sim/Dex3Hand.hpp"
 #include "gaitos_unitree_sim/UnitreeGoEmulator.hpp"
 #include "gaitos_unitree_sim/UnitreeHgEmulator.hpp"
 #include "nlohmann/json.hpp"
@@ -139,6 +140,17 @@ protected:
   }
 
   std::size_t joint(const std::string & name) {return *core.model()->joint_index(name);}
+};
+
+/// R1 emulator with the Dex3 hands (params/r1_dex3.yaml)
+class Dex3Test : public EmulatorTest
+{
+protected:
+  void SetUp() override
+  {
+    start("r1", "gaitos/params/fake.yaml", "hardware: {base_height: 0.75}\ninitial_mode: damp",
+      {"gaitos_unitree_sim/params/r1_dex3.yaml"});
+  }
 };
 
 /// Go2 (unitree_go) emulator
@@ -367,6 +379,48 @@ TEST_F(ArmSdkTest, PartialWeightBlendsWithTheController)
   for (const auto & c : commands) {
     EXPECT_DOUBLE_EQ(c.weight, 0.5);
   }
+}
+
+TEST(Dex3Hand, FollowsTheCommandWithinLimits)
+{
+  using gaitos_unitree_sim::Dex3Hand;
+  const Dex3Hand::Vector lower{-1, -1, -1, -1, -1, -1, -1};
+  const Dex3Hand::Vector upper{1, 1, 1, 1, 1, 1, 1};
+  Dex3Hand hand(lower, upper, 0.05, 6.0, 1.4);
+  Dex3Hand::Vector q{0.5, 2.0, -0.5, 0, 0, 0, 0};
+  Dex3Hand::Vector kp{1, 1, 1, 1, 1, 1, 0};   // the last motor has no stiffness
+  Dex3Hand::Vector kd{0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
+  hand.command(q, kp, kd);
+  for (int i = 0; i < 500; ++i) {
+    hand.update(0.002);   // 1 s
+  }
+  EXPECT_NEAR(hand.position()[0], 0.5, 1e-3);
+  EXPECT_NEAR(hand.position()[1], 1.0, 1e-6);    // the command is clamped to the joint range
+  EXPECT_NEAR(hand.position()[2], -0.5, 1e-3);
+  EXPECT_DOUBLE_EQ(hand.position()[6], 0.0);     // kp 0: stays
+  // Speed limit: 6 rad/s at most
+  Dex3Hand fast(lower, upper, 0.001, 6.0, 1.4);
+  fast.command({1, 0, 0, 0, 0, 0, 0}, kp, kd);
+  fast.update(0.01);
+  EXPECT_NEAR(fast.position()[0], 0.06, 1e-9);
+  EXPECT_LE(std::abs(fast.effort()[0]), 1.4);
+}
+
+TEST_F(Dex3Test, HandStateMessage)
+{
+  auto * left = emulator.hand("left");
+  auto * right = emulator.hand("right");
+  ASSERT_NE(left, nullptr);
+  ASSERT_NE(right, nullptr);
+  EXPECT_EQ(emulator.hand("middle"), nullptr);
+  unitree_hg::msg::HandState state;
+  gaitos_unitree_sim::UnitreeHgEmulator::fill_hand_state(*left, state);
+  ASSERT_EQ(state.motor_state.size(), 7u);
+  ASSERT_EQ(state.press_sensor_state.size(), 1u);
+  EXPECT_EQ(state.motor_state[0].mode, 1);
+  EXPECT_EQ(state.motor_state[0].motorstate, 0u);
+  // thumb_2 of the left hand ranges over [0, 1.745]: starts at 0
+  EXPECT_FLOAT_EQ(state.motor_state[2].q, 0.0f);
 }
 
 TEST_F(ArmSdkTest, NotHeldOutsideTheWalkingModes)

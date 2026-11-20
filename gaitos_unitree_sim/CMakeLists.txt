@@ -18,6 +18,7 @@ endforeach()
 find_package(nlohmann_json REQUIRED)
 
 add_library(gaitos_unitree_sim SHARED
+  src/Dex3Hand.cpp
   src/UnitreeEmulatorBase.cpp
   src/UnitreeHgEmulator.cpp
   src/UnitreeGoEmulator.cpp)
