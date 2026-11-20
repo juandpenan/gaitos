@@ -108,6 +108,72 @@ void UnitreeHgEmulator::configure_robot(const gaitos::Params & p)
       });
   }
 
+  // Dex3 hands: kinematic, behind the topics of the real ones
+  const gaitos::Params dex3 = p.sub("dex3");
+  hands_.clear();
+  if (dex3.get<bool>("enabled", false)) {
+    const double time_constant = dex3.get<double>("time_constant", 0.05);
+    const double max_speed = dex3.get<double>("max_speed", 6.0);
+    const double max_effort = dex3.get<double>("max_effort", 1.4);
+    const double rate = dex3.get<double>("rate", 500.0);
+    if (time_constant <= 0.0 || max_speed <= 0.0 || max_effort < 0.0 || rate <= 0.0) {
+      throw std::runtime_error(
+              "unitree emulator: dex3 needs time_constant, max_speed and rate > 0, max_effort >= 0");
+    }
+    for (const std::string side : {"left", "right"}) {
+      const auto lower = dex3.get<std::vector<double>>(side + ".lower", {});
+      const auto upper = dex3.get<std::vector<double>>(side + ".upper", {});
+      if (lower.size() != Dex3Hand::kMotors || upper.size() != Dex3Hand::kMotors) {
+        throw std::runtime_error("unitree emulator: dex3." + side + ".lower/upper need 7 values");
+      }
+      Dex3Hand::Vector lo{}, up{};
+      std::copy(lower.begin(), lower.end(), lo.begin());
+      std::copy(upper.begin(), upper.end(), up.begin());
+      for (std::size_t i = 0; i < Dex3Hand::kMotors; ++i) {
+        if (!(lo[i] <= up[i])) {
+          throw std::runtime_error("unitree emulator: dex3." + side + ": lower > upper");
+        }
+      }
+      Hand h;
+      h.side = side;
+      h.model = std::make_unique<Dex3Hand>(lo, up, time_constant, max_speed, max_effort);
+      h.pub = n.create_publisher<unitree_hg::msg::HandState>(
+        topic("dex3_" + side + "_state", "/dex3/" + side + "/state"), state_qos());
+      hands_.push_back(std::move(h));
+    }
+    for (auto & h : hands_) {
+      Dex3Hand * model = h.model.get();
+      h.sub = n.create_subscription<unitree_hg::msg::HandCmd>(
+        topic("dex3_" + h.side + "_cmd", "/dex3/" + h.side + "/cmd"), rclcpp::QoS(1).best_effort(),
+        [this, model](const unitree_hg::msg::HandCmd & msg) {
+          if (msg.motor_cmd.size() < Dex3Hand::kMotors) {
+            return;
+          }
+          Dex3Hand::Vector q{}, kp{}, kd{};
+          for (std::size_t i = 0; i < Dex3Hand::kMotors; ++i) {
+            q[i] = msg.motor_cmd[i].q;
+            kp[i] = msg.motor_cmd[i].kp;
+            kd[i] = msg.motor_cmd[i].kd;
+          }
+          std::lock_guard<std::mutex> lock(hands_mutex_);
+          model->command(q, kp, kd);
+        });
+    }
+    add_timer(rate, [this]() {
+        // Integrate the node time (simulation time with use_sim_time), not the nominal period
+        const double now = node().now().seconds();
+        std::lock_guard<std::mutex> lock(hands_mutex_);
+        const double dt = hands_last_update_ < 0.0 ? 0.0 : std::min(0.1, now - hands_last_update_);
+        hands_last_update_ = now;
+        for (auto & h : hands_) {
+          h.model->update(dt);
+          unitree_hg::msg::HandState msg;
+          fill_hand_state(*h.model, msg);
+          h.pub->publish(msg);
+        }
+      });
+  }
+
   add_service("sport", p.get<std::string>("versions.sport", "1.0.0.1"),
     [this](int64_t id, const std::string & prm) {return handle_sport(id, prm);});
   add_service("arm", p.get<std::string>("versions.arm", "1.0.0.1"),
@@ -150,10 +216,42 @@ void UnitreeHgEmulator::configure_robot(const gaitos::Params & p)
   RCLCPP_INFO(n.get_logger(), "unitree emulator (hg): %s, %s, %s/sport and %s/arm",
     lowstate_pub_->get_topic_name(), odom_pub_->get_topic_name(), api_prefix_.c_str(),
     api_prefix_.c_str());
+  if (!hands_.empty()) {
+    RCLCPP_INFO(n.get_logger(), "unitree emulator (hg): Dex3 hands on /dex3/left and /dex3/right");
+  }
   if (arm_sdk_sub_) {
     RCLCPP_INFO(n.get_logger(), "unitree emulator (hg): arm_sdk on %s, %zu joints",
       arm_sdk_sub_->get_topic_name(), arm_sdk_joints_.size());
   }
+}
+
+Dex3Hand * UnitreeHgEmulator::hand(const std::string & side)
+{
+  for (auto & h : hands_) {
+    if (h.side == side) {
+      return h.model.get();
+    }
+  }
+  return nullptr;
+}
+
+void UnitreeHgEmulator::fill_hand_state(const Dex3Hand & hand, unitree_hg::msg::HandState & msg)
+{
+  msg.motor_state.resize(Dex3Hand::kMotors);
+  for (std::size_t i = 0; i < Dex3Hand::kMotors; ++i) {
+    auto & m = msg.motor_state[i];
+    m.mode = 1;
+    m.q = static_cast<float>(hand.position()[i]);
+    m.dq = static_cast<float>(hand.velocity()[i]);
+    m.tau_est = static_cast<float>(hand.effort()[i]);
+    m.temperature = {30, 30};
+    m.vol = 24.0f;
+    m.motorstate = 0;   // no fault
+  }
+  msg.press_sensor_state.resize(1);   // no contact: zero pressure, nothing lost
+  msg.power_v = 24.0f;
+  msg.system_v = 24.0f;
+  msg.device_v = 24.0f;
 }
 
 bool UnitreeHgEmulator::held() const

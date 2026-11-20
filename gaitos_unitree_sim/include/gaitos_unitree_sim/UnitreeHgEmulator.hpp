@@ -7,15 +7,20 @@
 #include <atomic>
 #include <cstdint>
 #include <map>
+#include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "gaitos_unitree_sim/Dex3Hand.hpp"
 #include "gaitos_unitree_sim/UnitreeEmulatorBase.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "unitree_go/msg/sport_mode_state.hpp"
 #include "unitree_hg/msg/bms_state.hpp"
+#include "unitree_hg/msg/hand_cmd.hpp"
+#include "unitree_hg/msg/hand_state.hpp"
 #include "unitree_hg/msg/imu_state.hpp"
 #include "unitree_hg/msg/low_cmd.hpp"
 #include "unitree_hg/msg/low_state.hpp"
@@ -62,7 +67,11 @@ constexpr int64_t kStopCustomAction = 7113;
  * codes are what an R1 answered in tests (2026-11), not documented values. The joints must be
  * in `external_joints.groups` of gaitos (the SRDF group arm_sdk).
  *
- * Not emulated: the Dex3 hands, the CRC of lowstate (0).
+ * Dex3 hands (`dex3.enabled`, default false): /dex3/<side>/cmd moves a kinematic hand
+ * (Dex3Hand: first-order lag, speed and joint limits; the simulated robot has no hands) whose
+ * motors are published on /dex3/<side>/state, with no pressure and no faults.
+ *
+ * Not emulated: the CRC of lowstate (0), the hands' physics and contacts.
  */
 class UnitreeHgEmulator : public UnitreeEmulatorBase
 {
@@ -80,6 +89,11 @@ public:
   /// The arms are held through arm_sdk: in a walking mode, and a command with weight > 0
   /// arrived less than `arm_sdk.timeout` ago
   bool held() const;
+  /// Emulated Dex3 hand of `side` ("left", "right"), nullptr when disabled. For tests: the
+  /// hand timer updates it under its own lock
+  Dex3Hand * hand(const std::string & side);
+  /// HandState of a Dex3 hand
+  static void fill_hand_state(const Dex3Hand & hand, unitree_hg::msg::HandState & msg);
 
 protected:
   void configure_robot(const gaitos::Params & params) override;
@@ -99,6 +113,17 @@ private:
   std::atomic<double> last_held_{-1.0};   ///< node time of the last command with weight > 0
   rclcpp::Subscription<unitree_hg::msg::LowCmd>::SharedPtr arm_sdk_sub_;
 
+  // Dex3 hands
+  struct Hand
+  {
+    std::string side;
+    std::unique_ptr<Dex3Hand> model;
+    rclcpp::Subscription<unitree_hg::msg::HandCmd>::SharedPtr sub;
+    rclcpp::Publisher<unitree_hg::msg::HandState>::SharedPtr pub;
+  };
+  std::vector<Hand> hands_;
+  std::mutex hands_mutex_;
+  double hands_last_update_{-1.0};   ///< node time of the last hand update
 
   rclcpp::Publisher<unitree_hg::msg::LowState>::SharedPtr lowstate_pub_;
   rclcpp::Publisher<unitree_hg::msg::IMUState>::SharedPtr imu_pub_;

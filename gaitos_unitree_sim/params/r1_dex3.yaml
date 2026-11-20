@@ -1,0 +1,20 @@
+# Dex3-1 hands of the R1 in simulation (sim.launch.py dex3:=true): kinematic hands behind
+# /dex3/<side>/cmd and /dex3/<side>/state (the simulated R1 has no hands).
+/**:
+  ros__parameters:
+    extensions:
+      unitree:
+        dex3:
+          enabled: true
+          rate: 500.0            # [Hz] HandState
+          time_constant: 0.05    # [s] first-order lag of each motor toward its command
+          max_speed: 6.0         # [rad/s]
+          max_effort: 1.4        # [Nm]
+          # Joint ranges in motor order (thumb_0, thumb_1, thumb_2, middle_0, middle_1,
+          # index_0, index_1), from the Dex3-1 URDF of unitree_ros (G1 hands, the same Dex3-1)
+          left:
+            lower: [-1.04719755, -0.61086523, 0.0, -1.57079632, -1.74532925, -1.57079632, -1.74532925]
+            upper: [1.04719755, 1.04719755, 1.74532925, 0.0, 0.0, 0.0, 0.0]
+          right:
+            lower: [-1.04719755, -1.04719755, -1.74532925, 0.0, 0.0, 0.0, 0.0]
+            upper: [1.04719755, 0.61086523, 0.0, 1.57079632, 1.74532925, 1.57079632, 1.74532925]
