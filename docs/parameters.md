@@ -25,6 +25,8 @@ Launch files load, in order (later files override earlier ones):
 | `modes.<name>`, `initial_mode` | Operation modes. |
 | `safety`, `teleop`, `dry_run` | Safety ([Safety and the real robot](safety.md)). |
 | `external_odometry.sources`, `.topics` | External odometry topics. |
+| `external_joints.groups`, `.any_joint_modes`, `.off_modes` | Joints applications move over the controller: position targets (`joint_targets`, `Gaitos::set_joint_targets`) and full motor commands blended by a weight (`Gaitos::set_joint_commands`, used by vendor emulators such as the Unitree arm_sdk; no ROS interface). |
+| `external_joints.command_timeout`, `.release_time` | `set_joint_commands` only: when the sender stops (no command for `command_timeout` s, 0.5) or the mode changes, the joint is blended back to the controller over `release_time` s (0.2); a new command takes it again at its own weight (arm_sdk clients ramp the weight themselves). |
 | `frames.*`, `publish_tf`, `publish_rate`, `publish_clock` | ROS outputs. |
 
 Gains are given per joint, per group or by default (`default`, then groups, then joints):
