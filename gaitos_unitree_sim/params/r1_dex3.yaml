@@ -1,5 +1,6 @@
-# Dex3-1 hands of the R1 in simulation (sim.launch.py dex3:=true): kinematic hands behind
-# /dex3/<side>/cmd and /dex3/<side>/state (the simulated R1 has no hands).
+# Dex3-1 hands of the R1 in simulation (sim.launch.py dex3:=true), behind /dex3/<side>/cmd and
+# /dex3/<side>/state. In MuJoCo the model has the hands (r1_dex3_mujoco.yaml): the commands move
+# its finger joints. Elsewhere the hands are kinematic (time_constant, max_speed, max_effort).
 /**:
   ros__parameters:
     extensions:
@@ -7,6 +8,7 @@
         dex3:
           enabled: true
           rate: 500.0            # [Hz] HandState
+          physical: true         # move the hand joints of the simulation if it has them
           time_constant: 0.05    # [s] first-order lag of each motor toward its command
           max_speed: 6.0         # [rad/s]
           max_effort: 1.4        # [Nm]

@@ -36,6 +36,12 @@ public:
   const Vector & position() const {return q_;}
   const Vector & velocity() const {return dq_;}
   const Vector & effort() const {return tau_;}
+  /// Latest command (clamped to the joint ranges) and its gains
+  const Vector & target() const {return target_;}
+  const Vector & stiffness() const {return kp_;}
+  const Vector & damping() const {return kd_;}
+  /// Whether a command has arrived
+  bool commanded() const {return commanded_;}
 
 private:
   Vector lower_;
@@ -49,6 +55,7 @@ private:
   Vector target_{};
   Vector kp_{};
   Vector kd_{};
+  bool commanded_{false};
 };
 
 }  // namespace gaitos_unitree_sim

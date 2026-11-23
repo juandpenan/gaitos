@@ -67,11 +67,15 @@ constexpr int64_t kStopCustomAction = 7113;
  * codes are what an R1 answered in tests (2026-11), not documented values. The joints must be
  * in `external_joints.groups` of gaitos (the SRDF group arm_sdk).
  *
- * Dex3 hands (`dex3.enabled`, default false): /dex3/<side>/cmd moves a kinematic hand
- * (Dex3Hand: first-order lag, speed and joint limits; the simulated robot has no hands) whose
- * motors are published on /dex3/<side>/state, with no pressure and no faults.
+ * Dex3 hands (`dex3.enabled`, default false): /dex3/<side>/cmd moves the hand, whose motors
+ * are published on /dex3/<side>/state, with no pressure and no faults. If the simulated robot
+ * has the hand joints (`dex3.<side>.joints`, auxiliary joints of the backend, e.g. the MuJoCo
+ * model r1_dex3.xml), the commanded PD (q, kp, kd, limited to the joint effort) moves them in
+ * the simulation and the state is theirs: fingers touch and grasp. Otherwise (or with
+ * `dex3.physical: false`) a kinematic hand (Dex3Hand: first-order lag, speed and joint limits)
+ * follows the command and nothing is grasped.
  *
- * Not emulated: the CRC of lowstate (0), the hands' physics and contacts.
+ * Not emulated: the CRC of lowstate (0), the pressure sensors of the hands.
  */
 class UnitreeHgEmulator : public UnitreeEmulatorBase
 {
@@ -92,8 +96,14 @@ public:
   /// Emulated Dex3 hand of `side` ("left", "right"), nullptr when disabled. For tests: the
   /// hand timer updates it under its own lock
   Dex3Hand * hand(const std::string & side);
+  /// Whether the Dex3 hand of `side` moves joints of the simulation (else it is kinematic)
+  bool hand_is_physical(const std::string & side) const;
   /// HandState of a Dex3 hand
   static void fill_hand_state(const Dex3Hand & hand, unitree_hg::msg::HandState & msg);
+  /// HandState from motor positions, velocities and efforts
+  static void fill_hand_state(
+    const std::vector<double> & q, const std::vector<double> & dq,
+    const std::vector<double> & tau, unitree_hg::msg::HandState & msg);
 
 protected:
   void configure_robot(const gaitos::Params & params) override;
@@ -118,6 +128,8 @@ private:
   {
     std::string side;
     std::unique_ptr<Dex3Hand> model;
+    std::vector<std::string> joints;   ///< simulated joints in motor order, if physical
+    bool physical{false};
     rclcpp::Subscription<unitree_hg::msg::HandCmd>::SharedPtr sub;
     rclcpp::Publisher<unitree_hg::msg::HandState>::SharedPtr pub;
   };

@@ -7,10 +7,16 @@
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
 #include <functional>
+#include <string>
+#include <vector>
+
+#include <unistd.h>
 
 #include "ament_index_cpp/get_package_share_path.hpp"
 #include "gaitos_common/Math.hpp"
+#include "gaitos_mujoco/MujocoHardware.hpp"
 #include "gaitos_system/Gaitos.hpp"
 #include "gaitos_system/testing.hpp"
 
@@ -335,4 +341,64 @@ TEST(Mujoco, R1Dex3ModelStandsAndWalks)
   run(g, 6.0, [&g]() {g.set_twist({0.15, 0.0, 0.0}, Eigen::Vector3d::Zero());});
   EXPECT_GT((truth(g).position - start).x(), 0.3);
   EXPECT_LT(tilt_angle(truth(g).orientation), 0.2);
+}
+
+TEST(Mujoco, R1Dex3HandsAndWorldIncludes)
+{
+  if (!r1_assets()) {
+    GTEST_SKIP() << "gaitos_description was built with GAITOS_FETCH_ASSETS=OFF";
+  }
+  // A world to include: a static block under the floor (the robot must still be placed on the
+  // floor, by its own geometry) and a free crate
+  const auto world = std::filesystem::temp_directory_path() /
+    ("gaitos_test_world_" + std::to_string(::getpid()) + ".xml");
+  {
+    std::ofstream out(world);
+    out << "<mujoco><worldbody>\n"
+      "<body name=\"block\"><geom type=\"box\" size=\"0.2 0.2 0.05\" pos=\"3 0 -0.3\"/></body>\n"
+      "<body name=\"crate\" pos=\"1 1 0.3\"><freejoint/>"
+      "<geom type=\"box\" size=\"0.05 0.05 0.05\" mass=\"0.5\"/></body>\n"
+      "</worldbody></mujoco>\n";
+  }
+  const std::string share = "package://gaitos_description/robots/r1_description/";
+  auto files = testutil::robot_files(std::string(GAITOS_SOURCE_DIR), "r1",
+      {"gaitos_mujoco/params/r1_mujoco.yaml"});
+  files.push_back(testutil::overrides(
+      "robot:\n  urdf: " + share + "urdf/r1_dex3.urdf\n"
+      "hardware:\n  model: " + share + "mjcf/scene_dex3.xml\n"
+      "  world_includes: [" + world.string() + "]"));
+  Gaitos g;
+  g.configure(testutil::make_params(files));
+  ASSERT_TRUE(g.start());
+  EXPECT_NEAR(g.model()->tree().mass(), 30.53, 0.05);   // with the hands
+  auto * hw = dynamic_cast<gaitos_mujoco::MujocoHardware *>(&g.hardware());
+  ASSERT_NE(hw, nullptr);
+  const mjModel * m = hw->mj_model();
+  ASSERT_GE(mj_name2id(m, mjOBJ_BODY, "block"), 0);
+  const int crate = mj_name2id(m, mjOBJ_BODY, "crate");
+  ASSERT_GE(crate, 0);
+  run(g, 2.5);
+  EXPECT_EQ(g.state().mode, "stand_up");
+  EXPECT_GT(truth(g).position.z(), 0.6);
+  EXPECT_NEAR(hw->mj_data()->xpos[3 * crate + 2], 0.05, 0.01);   // fell on the floor
+
+  // Fingers: auxiliary joints
+  const std::vector<std::string> fingers{"right_hand_middle_0_joint", "right_hand_index_0_joint"};
+  std::vector<double> q, dq, tau;
+  ASSERT_TRUE(hw->read_auxiliary(fingers, q, dq, tau));
+  EXPECT_NEAR(q[0], 0.0, 0.05);
+  EXPECT_FALSE(hw->read_auxiliary({"no_such_joint"}, q, dq, tau));
+  EXPECT_TRUE(hw->command_auxiliary(fingers, {1.0, 1.0}, {2.0, 2.0}, {0.05, 0.05}));
+  run(g, 1.0);
+  ASSERT_TRUE(hw->read_auxiliary(fingers, q, dq, tau));
+  EXPECT_NEAR(q[0], 1.0, 0.1);
+  EXPECT_NEAR(q[1], 1.0, 0.1);
+
+  // Walking with the weight of the hands (the LIPM controller balances it)
+  request(g, "locomotion_lipm");
+  const Eigen::Vector3d start = truth(g).position;
+  run(g, 6.0, [&g]() {g.set_twist({0.15, 0.0, 0.0}, Eigen::Vector3d::Zero());});
+  EXPECT_GT((truth(g).position - start).x(), 0.3);
+  EXPECT_LT(tilt_angle(truth(g).orientation), 0.2);
+  std::filesystem::remove(world);
 }

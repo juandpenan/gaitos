@@ -13,7 +13,8 @@ its emulator extension, publishes and serves what the robot does:
    joint_states, robot_description) is left to unitree_r1: bringup:=true also starts its
    r1_core (r1_state, robot_state_publisher, r1_locomotion, r1_gesture) if it is installed.
    arm_sdk:=true also takes the upper body commands of /arm_sdk (params/r1_arm_sdk.yaml), and
-   dex3:=true emulates the Dex3-1 hands, kinematic (params/r1_dex3.yaml).
+   dex3:=true emulates the Dex3-1 hands (params/r1_dex3.yaml): in MuJoCo the model has them
+   (r1_dex3.xml) and their joints move; in Gazebo they are kinematic.
  - go2 (UnitreeGoEmulator): /lowstate, /lf/lowstate, /sportmodestate, /lf/sportmodestate and
    /api/sport (StandUp, BalanceStand, Move, Euler...); gaitos also publishes its own state
    (TF, joint_states with robot_state_publisher) in /gaitos.
@@ -38,12 +39,14 @@ def launch_setup(context):
                             f'{robot}_unitree_sim.yaml')
     extra = [p.strip() for p in LaunchConfiguration('params').perform(context).split(',') if p.strip()]
     # Optional R1 interfaces, before the user's files so that those still override them
-    for flag, file in (('dex3', 'r1_dex3.yaml'), ('arm_sdk', 'r1_arm_sdk.yaml')):
+    dex3_files = ['r1_dex3.yaml'] + (['r1_dex3_mujoco.yaml'] if simulator == 'mujoco' else [])
+    for flag, files in (('dex3', dex3_files), ('arm_sdk', ['r1_arm_sdk.yaml'])):
         if LaunchConfiguration(flag).perform(context) == 'true':
             if robot != 'r1':
                 raise RuntimeError(f'{flag}:=true is only for robot:=r1')
-            extra.insert(0, os.path.join(get_package_share_directory('gaitos_unitree_sim'),
-                                         'params', file))
+            for file in reversed(files):
+                extra.insert(0, os.path.join(get_package_share_directory('gaitos_unitree_sim'),
+                                             'params', file))
     # The R1 state is published by unitree_r1; the Go2 one by gaitos itself
     state_by_gaitos = robot != 'r1'
     args = {'robot': robot, 'namespace': LaunchConfiguration('namespace').perform(context),
@@ -51,6 +54,8 @@ def launch_setup(context):
             'robot_state_publisher': 'true' if state_by_gaitos else 'false'}
     if simulator == 'gazebo':
         args['headless'] = LaunchConfiguration('headless').perform(context)
+    elif LaunchConfiguration('dex3').perform(context) == 'true':
+        args['urdf'] = 'r1_dex3.urdf'   # the gaitos model with the weight of the hands
     actions = [IncludeLaunchDescription(
         PythonLaunchDescriptionSource(os.path.join(
             get_package_share_directory(f'gaitos_{simulator}'), 'launch', 'sim.launch.py')),
@@ -77,6 +82,6 @@ def generate_launch_description():
         DeclareLaunchArgument('arm_sdk', default_value='false',
                               description='r1: emulate arm_sdk (upper body commands, FSM 816)'),
         DeclareLaunchArgument('dex3', default_value='false',
-                              description='r1: emulate the Dex3-1 hands (kinematic)'),
+                              description='r1: emulate the Dex3-1 hands (simulated in MuJoCo)'),
         OpaqueFunction(function=launch_setup),
     ])

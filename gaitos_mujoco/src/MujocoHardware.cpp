@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <filesystem>
 #include <limits>
 
@@ -125,6 +126,7 @@ bool MujocoHardware::on_initialize()
 
   // Simulated joints that gaitos does not control: held where they start
   held_.clear();
+  held_index_.clear();
   std::string held;
   for (int j = 0; j < model_->njnt; ++j) {
     if (used[static_cast<std::size_t>(j)] || (model_->jnt_type[j] != mjJNT_HINGE &&
@@ -139,11 +141,21 @@ bool MujocoHardware::on_initialize()
         h.gear = model_->actuator_gear[6 * a] != 0.0 ? model_->actuator_gear[6 * a] : 1.0;
       }
     }
+    if (model_->jnt_actfrclimited[j]) {
+      h.limit = std::max(std::abs(model_->jnt_actfrcrange[2 * j]),
+        std::abs(model_->jnt_actfrcrange[2 * j + 1]));
+    }
+    held_index_[mj_id2name(model_, mjOBJ_JOINT, j)] = held_.size();
     held_.push_back(h);
     held += std::string(mj_id2name(model_, mjOBJ_JOINT, j)) + " ";
   }
   if (!held.empty()) {
     logger().info() << "Simulated joints held in place: " << held;
+  }
+  {
+    std::lock_guard<std::mutex> lock(auxiliary_mutex_);
+    auxiliary_commands_.clear();
+    auxiliary_state_.assign(held_.size(), AuxiliaryState());
   }
 
   // IMU sensors
@@ -211,7 +223,86 @@ bool MujocoHardware::load_model()
 {
   char error[1024] = "";
   const bool urdf = std::filesystem::path(file_).extension() == ".urdf";
-  if (!urdf) {
+  std::vector<std::string> includes;
+  for (const auto & f : params().get<std::vector<std::string>>("world_includes", {})) {
+    if (!f.empty()) {
+      includes.push_back(gaitos::resolve_uri(f));
+    }
+  }
+  if (!urdf && !includes.empty()) {
+    // The worlds of other MJCF files (a room, objects...) attached to the one of the model
+    mjSpec * spec = mj_parseXML(file_.c_str(), nullptr, error, sizeof(error));
+    std::vector<mjSpec *> children;
+    bool ok = spec != nullptr;
+    if (spec) {
+      // MuJoCo 3.5: shallow attaches of several bodies of one spec corrupt the asset arrays;
+      // deep copies work, and the assets are copied with the first body only (see below)
+      mjs_setDeepCopy(spec, 1);
+    }
+    for (const auto & f : includes) {
+      if (!ok) {
+        break;
+      }
+      mjSpec * child = mj_parseXML(f.c_str(), nullptr, error, sizeof(error));
+      if (!child) {
+        logger().error() << "Cannot load " << f << ": " << error;
+        ok = false;
+        break;
+      }
+      children.push_back(child);
+      // Its top-level bodies (with what they hold: geoms, lights, free joints...) go to the
+      // world of the model; what is directly in its world would be lost
+      mjsBody * child_world = mjs_findBody(child, "world");
+      for (const mjtObj type : {mjOBJ_GEOM, mjOBJ_SITE, mjOBJ_LIGHT, mjOBJ_CAMERA}) {
+        if (mjs_firstChild(child_world, type, 0)) {
+          logger().warn() << f << ": geoms, sites, lights and cameras directly in <worldbody> " <<
+            "are not included: put them in a body";
+          break;
+        }
+      }
+      mjsBody * world = mjs_findBody(spec, "world");
+      for (mjsElement * e = mjs_firstChild(child_world, mjOBJ_BODY, 0); e && ok;
+        e = mjs_nextChild(child_world, e, 0))
+      {
+        mjsFrame * frame = mjs_addFrame(world, nullptr);
+        if (!mjs_attach(frame->element, e, "", "")) {
+          logger().error() << "Cannot attach " << f << ": " << mjs_getError(spec);
+          ok = false;
+        }
+        // Each attach copies all the assets of the include: once is enough, the next bodies
+        // find them by name
+        for (const mjtObj type : {mjOBJ_MESH, mjOBJ_TEXTURE, mjOBJ_MATERIAL, mjOBJ_HFIELD,
+            mjOBJ_SKIN})
+        {
+          mjsElement * a = mjs_firstElement(child, type);
+          while (a) {
+            mjsElement * next = mjs_nextElement(child, a);
+            mjs_delete(child, a);
+            a = next;
+          }
+        }
+      }
+    }
+    if (ok) {
+      model_ = mj_compile(spec, nullptr);
+      if (!model_) {
+        std::snprintf(error, sizeof(error), "%s", mjs_getError(spec));
+      }
+    }
+    for (auto * c : children) {
+      mj_deleteSpec(c);
+    }
+    if (spec) {
+      mj_deleteSpec(spec);
+    }
+    if (model_) {
+      std::string names;
+      for (const auto & f : includes) {
+        names += " " + f;
+      }
+      logger().info() << "World includes:" << names;
+    }
+  } else if (!urdf) {
     model_ = mj_loadXML(file_.c_str(), nullptr, error, sizeof(error));
   } else {
     // URDF: add the free joint of the base and a floor
@@ -275,7 +366,10 @@ void MujocoHardware::place_robot()
     // Lowest point of the robot collision geometry on the floor
     double min_z = std::numeric_limits<double>::infinity();
     for (int g = 0; g < model_->ngeom; ++g) {
-      if (model_->geom_bodyid[g] == 0 || !(model_->geom_contype[g] || model_->geom_conaffinity[g])) {
+      // the robot only (the tree of the base), not the world nor other objects
+      if (model_->body_rootid[model_->geom_bodyid[g]] != model_->body_rootid[base_body_] ||
+        !(model_->geom_contype[g] || model_->geom_conaffinity[g]))
+      {
         continue;
       }
       const mjtNum * p = data_->geom_xpos + 3 * g;
@@ -308,7 +402,14 @@ void MujocoHardware::place_robot()
   }
   for (auto & h : held_) {
     h.target = data_->qpos[h.qpos];
+    h.kp = h.kd = -1.0;
   }
+  {
+    std::lock_guard<std::mutex> lock(auxiliary_mutex_);
+    auxiliary_commands_.clear();
+  }
+  update_auxiliary_state();
+  update_render_state();
   last_velocity_.setZero();
   logger().info() << "Robot placed at height " << data_->qpos[base_qpos_ + 2] << " m" <<
     (pose.empty() ? std::string("") : " in pose " + pose);
@@ -377,8 +478,13 @@ void MujocoHardware::apply_torques()
       data_->qfrc_applied[m.dof] = tau;
     }
   }
-  for (const auto & h : held_) {
-    const double tau = hold_kp_ * (h.target - data_->qpos[h.qpos]) - hold_kd_ * data_->qvel[h.dof];
+  for (auto & h : held_) {
+    double tau = (h.kp >= 0.0 ? h.kp : hold_kp_) * (h.target - data_->qpos[h.qpos]) -
+      (h.kd >= 0.0 ? h.kd : hold_kd_) * data_->qvel[h.dof];
+    if (h.limit >= 0.0) {
+      tau = std::clamp(tau, -h.limit, h.limit);
+    }
+    h.effort = tau;
     if (h.actuator >= 0) {
       data_->ctrl[h.actuator] = tau / h.gear;
     } else {
@@ -471,10 +577,22 @@ bool MujocoHardware::write(const gaitos::JointCommand & command)
       fake_q_[i] = command.position[i];
     }
   }
+  {
+    std::lock_guard<std::mutex> lock(auxiliary_mutex_);
+    for (const auto & [i, c] : auxiliary_commands_) {
+      auto & h = held_[i];
+      h.target = c.position;
+      h.kp = c.kp;
+      h.kd = c.kd;
+    }
+    auxiliary_commands_.clear();
+  }
   for (int k = 0; k < substeps_; ++k) {
     apply_torques();
     mj_step(model_, data_);
   }
+  update_auxiliary_state();
+  update_render_state();
   for (int i = 0; i < model_->nq; ++i) {
     if (!std::isfinite(data_->qpos[i])) {
       logger().error() << "Simulation diverged";
@@ -482,6 +600,79 @@ bool MujocoHardware::write(const gaitos::JointCommand & command)
     }
   }
   return true;
+}
+
+void MujocoHardware::update_render_state()
+{
+  std::lock_guard<std::mutex> lock(render_mutex_);
+  auto & r = render_state_;
+  r.qpos.assign(data_->qpos, data_->qpos + model_->nq);
+  r.mocap_pos.assign(data_->mocap_pos, data_->mocap_pos + 3 * model_->nmocap);
+  r.mocap_quat.assign(data_->mocap_quat, data_->mocap_quat + 4 * model_->nmocap);
+  r.time = data_->time;
+  ++r.step;
+}
+
+bool MujocoHardware::render_state(RenderState & state) const
+{
+  std::lock_guard<std::mutex> lock(render_mutex_);
+  if (render_state_.step == 0 || render_state_.step == state.step) {
+    return false;
+  }
+  state = render_state_;
+  return true;
+}
+
+void MujocoHardware::update_auxiliary_state()
+{
+  std::lock_guard<std::mutex> lock(auxiliary_mutex_);
+  auxiliary_state_.resize(held_.size());
+  for (std::size_t i = 0; i < held_.size(); ++i) {
+    auxiliary_state_[i] = {data_->qpos[held_[i].qpos], data_->qvel[held_[i].dof], held_[i].effort};
+  }
+}
+
+bool MujocoHardware::command_auxiliary(
+  const std::vector<std::string> & names, const std::vector<double> & position,
+  const std::vector<double> & kp, const std::vector<double> & kd)
+{
+  if (position.size() != names.size() || kp.size() != names.size() || kd.size() != names.size()) {
+    return false;
+  }
+  std::lock_guard<std::mutex> lock(auxiliary_mutex_);
+  bool all = true;
+  for (std::size_t i = 0; i < names.size(); ++i) {
+    const auto it = held_index_.find(names[i]);
+    if (it == held_index_.end() || !std::isfinite(position[i])) {
+      all = false;
+      continue;
+    }
+    auxiliary_commands_[it->second] = {position[i], std::max(0.0, kp[i]), std::max(0.0, kd[i])};
+  }
+  return all;
+}
+
+bool MujocoHardware::read_auxiliary(
+  const std::vector<std::string> & names, std::vector<double> & position,
+  std::vector<double> & velocity, std::vector<double> & effort) const
+{
+  position.assign(names.size(), 0.0);
+  velocity.assign(names.size(), 0.0);
+  effort.assign(names.size(), 0.0);
+  std::lock_guard<std::mutex> lock(auxiliary_mutex_);
+  bool all = true;
+  for (std::size_t i = 0; i < names.size(); ++i) {
+    const auto it = held_index_.find(names[i]);
+    if (it == held_index_.end() || it->second >= auxiliary_state_.size()) {
+      all = false;
+      continue;
+    }
+    const auto & s = auxiliary_state_[it->second];
+    position[i] = s.position;
+    velocity[i] = s.velocity;
+    effort[i] = s.effort;
+  }
+  return all;
 }
 
 }  // namespace gaitos_mujoco

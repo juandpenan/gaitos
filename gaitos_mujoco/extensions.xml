@@ -1,0 +1,9 @@
+<!--
+  Copyright 2026 Intelligent Robotics Lab (URJC)
+  Licensed under the Apache License, Version 2.0
+-->
+<library path="gaitos_mujoco_renderer">
+  <class name="gaitos_mujoco/MujocoRenderer" type="gaitos_mujoco::MujocoRenderer" base_class_type="gaitos::NodeExtension">
+    <description>Renders the MuJoCo simulation: simulated cameras as ROS images (color, depth, camera_info) and a viewer window</description>
+  </class>
+</library>

@@ -74,7 +74,8 @@ ros2 topic pub -r 10 /r1/cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.3}}"
 `bringup:=true` starts `r1_core` of unitree_r1 (r1_state, robot_state_publisher, r1_locomotion,
 r1_gesture) in `/r1`; the gaitos node is in `/gaitos`. unitree_r1 asks for at least 0.3 m/s, the
 LIPM caps it at 0.15 m/s. `arm_sdk:=true` adds the arms (`arm_sdk`, FSM 816 while held) and
-`dex3:=true` kinematic Dex3-1 hands, see [Vendor interfaces](../emulators.md).
+`dex3:=true` the Dex3-1 hands (in the model, with their weight), see
+[Vendor interfaces](../emulators.md).
 
 ## 6. The R1 with Dex3-1 hands
 
@@ -82,7 +83,8 @@ LIPM caps it at 0.15 m/s. `arm_sdk:=true` adds the arms (`arm_sdk`, FSM 816 whil
 `urdf/r1_dex3.urdf` (`scripts/make_r1_dex3.py`): the Dex3-1 hands of the unitree_ros G1 URDF on
 the R1 wrists, with their joints, masses (0.7 kg each) and meshes; the R1 wrist mesh is clipped
 where the stock fist starts. The URDF has each hand as one rigid body, so the controllers of
-gaitos know its weight. The finger joints are held where they start (`hold_gains`).
+gaitos know its weight. With `dex3:=true` the Dex3 emulator moves the finger joints (physical fingers, they
+touch and grasp); otherwise they are held where they start (`hold_gains`).
 
 The model also has the colours of the stock R1 (`scripts/r1_skin.py`): each visual mesh is cut
 into one mesh per material, by CAD part and by position on the part, and the collision geoms move
@@ -98,12 +100,55 @@ hardware:
 With 1.4 kg more at the wrists the stance controller of `balance_stand` (a PD of the stand pose,
 no balance feedback) tips the R1 over its toes; `locomotion_lipm` stands and walks with them.
 
-## 7. Known issues
+## 7. Cameras, viewer and a world around the robot
+
+`MujocoHardware` takes other MJCF files whose top-level bodies (geoms, lights, free joints and
+their assets) are added to the world of the robot, e.g. a room and objects to grasp; the
+robot is still placed on the floor by its own geometry:
+
+```yaml
+hardware:
+  world_includes: [/path/to/room.xml]
+```
+
+The node extension `gaitos_mujoco/MujocoRenderer` renders the simulation in a thread of its own:
+cameras fixed to a body, given as a ROS optical frame with pinhole intrinsics (so they copy a real
+one), published as `<namespace>/color/image_raw`, `color/camera_info` and
+`aligned_depth_to_color/image_raw` (16UC1 mm) stamped with the simulated time, and a viewer
+window (GLFW; mouse: rotate, move, zoom; `T` follows the robot). Without a display it renders
+headless (EGL). Parameters in the class documentation
+([`MujocoRenderer.hpp`](../../gaitos_mujoco/include/gaitos_mujoco/MujocoRenderer.hpp)):
+
+```yaml
+extensions:
+  render:
+    plugin: gaitos_mujoco/MujocoRenderer
+    viewer: true
+    cameras:
+      chest:
+        body: torso_link
+        xyz: [0.141, 0.032, 0.186]
+        rpy: [-2.0956, -0.0043, -1.5623]
+        width: 640
+        height: 480
+        fy: 620.5
+        cx: 325.06
+        cy: 239.59
+        rate: 15.0
+        namespace: /r1/chest_camera
+        frame_id: chest_camera_color_optical_frame
+```
+
+In Docker, render on the GPU with `--device nvidia.com/gpu=all -e NVIDIA_DRIVER_CAPABILITIES=all`
+(NVIDIA Container Toolkit); with Mesa only (`LIBGL_ALWAYS_SOFTWARE=1`, and
+`EGL_PLATFORM=surfaceless` without a display) a 640x480 camera runs at about 5 Hz.
+
+## 8. Known issues
 
 - `squat` → `stand_up` falls: the interpolation between the two postures tips the robot.
   Go through `balance_stand` or `damp` + `stand_up` with the robot held.
 
-## 8. Remake the clips
+## 9. Remake the clips
 
 ```bash
 docs/tools/record_mujoco.sh r1 docs/media/r1_mujoco_walk.gif 0 15 "--distance 2.3 --azimuth 135 --elevation -12" \

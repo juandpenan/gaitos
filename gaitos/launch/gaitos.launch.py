@@ -18,10 +18,12 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
-def description(robot):
+def description(robot, urdf_file=''):
+    """Folder, URDF and SRDF of a robot; urdf_file: a variant in its urdf/ folder (e.g.
+    r1_dex3.urdf), default <robot>.urdf"""
     base = os.path.join(get_package_share_directory('gaitos_description'), 'robots',
                         f'{robot}_description')
-    with open(os.path.join(base, 'urdf', f'{robot}.urdf')) as f:
+    with open(os.path.join(base, 'urdf', urdf_file or f'{robot}.urdf')) as f:
         urdf = f.read()
     with open(os.path.join(base, 'srdf', f'{robot}.srdf')) as f:
         srdf = f.read()
@@ -29,10 +31,10 @@ def description(robot):
 
 
 def gaitos_nodes(robot, namespace, extra_params, use_sim_time=False, rviz=False, overrides=None,
-                 state_publisher=True):
+                 state_publisher=True, urdf_file=''):
     """Nodes of one robot: gaitos_node, robot_state_publisher (unless another stack publishes
-    the robot state) and optionally RViz"""
-    base, urdf, srdf = description(robot)
+    the robot state) and optionally RViz. urdf_file: a URDF variant of the robot (description)"""
+    base, urdf, srdf = description(robot, urdf_file)
     params = [os.path.join(get_package_share_directory('gaitos'), 'params', 'gaitos.yaml'),
               os.path.join(base, 'config', f'{robot}.yaml')]
     params += [p for p in extra_params if p]

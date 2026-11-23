@@ -34,7 +34,8 @@ def launch_setup(context):
         rviz=LaunchConfiguration('rviz').perform(context) == 'true',
         overrides={'publish_clock': True,
                    'real_time_factor': float(LaunchConfiguration('real_time_factor').perform(context))},
-        state_publisher=LaunchConfiguration('robot_state_publisher').perform(context) == 'true')
+        state_publisher=LaunchConfiguration('robot_state_publisher').perform(context) == 'true',
+        urdf_file=LaunchConfiguration('urdf').perform(context))
 
 
 def generate_launch_description():
@@ -44,6 +45,9 @@ def generate_launch_description():
         DeclareLaunchArgument('params', default_value='', description='extra parameter files'),
         DeclareLaunchArgument('real_time_factor', default_value='1.0'),
         DeclareLaunchArgument('rviz', default_value='false'),
+        DeclareLaunchArgument('urdf', default_value='',
+                              description='URDF variant of the gaitos model in the urdf/ folder '
+                                          'of the robot (default <robot>.urdf)'),
         DeclareLaunchArgument('robot_state_publisher', default_value='true',
                               description='false when another stack publishes the robot state'),
         OpaqueFunction(function=launch_setup),

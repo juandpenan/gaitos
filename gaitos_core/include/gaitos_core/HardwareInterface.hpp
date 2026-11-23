@@ -5,6 +5,8 @@
 #define GAITOS_CORE__HARDWAREINTERFACE_HPP_
 
 #include <chrono>
+#include <string>
+#include <vector>
 
 #include "gaitos_common/RobotState.hpp"
 #include "gaitos_core/PluginBase.hpp"
@@ -70,6 +72,31 @@ public:
    * next cycle). A lockstep simulator running as fast as possible returns true.
    */
   virtual bool paces_loop() const {return false;}
+
+  /**
+   * @brief Command auxiliary joints: joints of the simulated robot that are not in the gaitos
+   * model (e.g. the fingers of a hand emulated by a node extension), each a PD
+   * tau = kp (q* - q) - kd dq limited to its effort. Thread safe: called from node
+   * extensions, applied from the next write(). Joints the backend does not know are ignored.
+   * @return false if the backend has no auxiliary joints or does not know some of `names`
+   */
+  virtual bool command_auxiliary(
+    const std::vector<std::string> & /*names*/, const std::vector<double> & /*position*/,
+    const std::vector<double> & /*kp*/, const std::vector<double> & /*kd*/)
+  {
+    return false;
+  }
+
+  /**
+   * @brief State of auxiliary joints after the last write(). Thread safe.
+   * @return false if the backend has no auxiliary joints or does not know some of `names`
+   */
+  virtual bool read_auxiliary(
+    const std::vector<std::string> & /*names*/, std::vector<double> & /*position*/,
+    std::vector<double> & /*velocity*/, std::vector<double> & /*effort*/) const
+  {
+    return false;
+  }
 
   /**
    * @brief Whether the backend may send anything to the robot. The system clears it in

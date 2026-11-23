@@ -1,0 +1,15 @@
+# R1 in MuJoCo with the Dex3-1 hands (sim.launch.py dex3:=true): the model with the hand
+# joints (gaitos_description mjcf/r1_dex3.xml, generated at build time), which the Dex3
+# emulator moves (r1_dex3.yaml). The launch also gives gaitos the URDF r1_dex3.urdf (the hands
+# as rigid bodies), so its controllers know their weight.
+/**:
+  ros__parameters:
+    hardware:
+      model: package://gaitos_description/robots/r1_description/mjcf/scene_dex3.xml
+    extensions:
+      unitree:
+        # With 1.4 kg more at the hands the stance controller of balance_stand (a PD of the
+        # stand pose, no balance feedback) tips the R1 over its toes within 2 s: walking mode
+        # (FSM 811) stands with the LIPM controller instead, which balances on the ZMP
+        fsm:
+          modes: [zero_torque, damp, stand_up, locomotion_lipm]

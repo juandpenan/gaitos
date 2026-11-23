@@ -39,15 +39,18 @@ ros2 topic pub -r 10 /r1/cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.3}}"
 | `/api/sport`: SetVelocity | body twist kept for its `duration`, only in FSM 811 |
 | `/api/arm` | empty action list; the actions answer 3203 (not implemented) |
 | `/arm_sdk` (`unitree_hg/LowCmd`), with `arm_sdk:=true` | in the walking FSM only: q, dq, tau, kp, kd of the arms, waist yaw and head (SRDF group `arm_sdk`) blended over the walking controller by the weight in `mode_pr` (`Gaitos::set_joint_commands`). While the weight is above 0: GetFsmId 816, SetVelocity refused (127), SetFsmId(811) refused (1001), what an R1 answered in tests ([`params/r1_arm_sdk.yaml`](../gaitos_unitree_sim/params/r1_arm_sdk.yaml)) |
-| `/dex3/{left,right}/cmd` → `/dex3/{left,right}/state` (`unitree_hg/HandCmd`, `HandState`), with `dex3:=true` | kinematic Dex3-1 hands (`Dex3Hand`): each motor with stiffness follows its command as a first-order lag, within its speed and joint range; no pressure, no faults. The simulated R1 has no hands, so nothing is grasped ([`params/r1_dex3.yaml`](../gaitos_unitree_sim/params/r1_dex3.yaml)) |
+| `/dex3/{left,right}/cmd` → `/dex3/{left,right}/state` (`unitree_hg/HandCmd`, `HandState`), with `dex3:=true` | Dex3-1 hands. In MuJoCo the model is `r1_dex3.xml` (the hands of the G1 URDF on the R1 wrists, generated at build time) and the commanded PD (q, kp, kd, limited to the motor effort) moves its finger joints (`MujocoHardware::command_auxiliary`): fingers touch and grasp, and the state is theirs. Elsewhere (Gazebo) the hands are kinematic (`Dex3Hand`: first-order lag, speed and joint limits). No pressure, no faults ([`params/r1_dex3.yaml`](../gaitos_unitree_sim/params/r1_dex3.yaml), [`params/r1_dex3_mujoco.yaml`](../gaitos_unitree_sim/params/r1_dex3_mujoco.yaml)) |
 
 ```bash
 ros2 launch gaitos_unitree_sim sim.launch.py robot:=r1 bringup:=true arm_sdk:=true dex3:=true
 ```
 
 The walking is the gaitos LIPM: unitree_r1 asks for at least 0.3 m/s, the controller caps it at
-0.15 m/s. The MuJoCo R1 has no hands: a gravity compensation computed with the Dex3 masses (e.g.
-unitree_r1's r1_arm) over-compensates the arms there.
+0.15 m/s. With `dex3:=true` in MuJoCo the hands weigh 0.7 kg each, as on the robot: gaitos uses
+the URDF `r1_dex3.urdf` (the hands as rigid bodies) and FSM 811 stands with the LIPM controller
+(`locomotion_lipm`), because the stance controller of `balance_stand` (a PD of the stand pose,
+no balance feedback) tips the R1 over its toes with that weight. Without the hands, a gravity
+compensation computed with the Dex3 masses (e.g. unitree_r1's r1_arm) over-compensates the arms.
 
 **Go2** (`UnitreeGoEmulator`). gaitos also publishes its own state in `/gaitos` (TF,
 joint_states, robot_state_publisher). The sport service takes the JSON of the official

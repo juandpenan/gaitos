@@ -30,6 +30,7 @@ void Dex3Hand::command(const Vector & q, const Vector & kp, const Vector & kd)
   }
   kp_ = kp;
   kd_ = kd;
+  commanded_ = true;
 }
 
 void Dex3Hand::update(double dt)
