@@ -78,14 +78,14 @@ LIPM caps it at 0.15 m/s. `arm_sdk:=true` adds the arms (`arm_sdk`, FSM 816 whil
 
 ## 6. The R1 with Dex3-1 hands
 
-`gaitos_description` also builds `mjcf/r1_dex3.xml` (with `mjcf/scene_dex3.xml`) and
-`urdf/r1_dex3.urdf` (`scripts/make_r1_dex3.py`): the Dex3-1 hands of the unitree_ros G1 URDF on
+`gaitos_description` also has `mjcf/r1_dex3.xml` (with `mjcf/scene_dex3.xml`) and
+`urdf/r1_dex3.urdf`: the Dex3-1 hands of the unitree_ros G1 URDF on
 the R1 wrists, with their joints, masses (0.7 kg each) and meshes; the R1 wrist mesh is clipped
 where the stock fist starts. The URDF has each hand as one rigid body, so the controllers of
 gaitos know its weight. The finger joints are held where they start (`hold_gains`).
 
-The model also has the colours of the stock R1 (`scripts/r1_skin.py`): each visual mesh is cut
-into one mesh per material, by CAD part and by position on the part, and the collision geoms move
+The model also has the colours of the stock R1: each visual mesh is cut into one mesh per
+material (`mjcf/meshes_dex3`), by CAD part and by position on the part, and the collision geoms move
 to group 3 (hidden). Visual only; the physics is the same.
 
 ```yaml

@@ -7,7 +7,8 @@ project(gaitos_description)
 find_package(ament_cmake REQUIRED)
 
 install(DIRECTORY robots launch rviz DESTINATION share/${PROJECT_NAME}
-  PATTERN "meshes" EXCLUDE PATTERN "assets" EXCLUDE)   # the assets come from FetchContent
+  PATTERN "meshes" EXCLUDE PATTERN "assets" EXCLUDE
+  PATTERN "meshes_dex3" EXCLUDE)   # the assets come from FetchContent
 install(PROGRAMS scripts/make_gazebo_urdf.py scripts/make_mjcf.py scripts/dae_to_obj.py
   DESTINATION lib/${PROJECT_NAME})
 
@@ -48,25 +49,10 @@ if(GAITOS_FETCH_ASSETS)
     endif()
     install(DIRECTORY ${from}/ DESTINATION ${to})
   endwhile()
-  # R1 with Dex3-1 hands (mjcf/r1_dex3.xml, and urdf/r1_dex3.urdf with the hands as rigid
-  # bodies for the gaitos model): the hand of the G1 URDF on the R1 wrist, whose mesh is
-  # clipped where the stock fist starts (make_r1_dex3.py)
-  find_package(Python3 REQUIRED COMPONENTS Interpreter)
-  set(R1_DEX3 ${CMAKE_CURRENT_BINARY_DIR}/r1_dex3)
-  set(G1_HAND_URDF ${UROS}/g1_description/g1_29dof_lock_waist_with_hand_rev_1_0.urdf)
-  add_custom_command(OUTPUT ${R1_DEX3}/r1_dex3.xml
-    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/make_r1_dex3.py
-      ${CMAKE_CURRENT_SOURCE_DIR}/robots/r1_description/mjcf/r1.xml
-      ${CMAKE_CURRENT_SOURCE_DIR}/robots/r1_description/urdf/r1.urdf ${G1_HAND_URDF}
-      ${UMJ}/r1/meshes ${R1_DEX3}
-    BYPRODUCTS ${R1_DEX3}/r1_dex3.urdf
-    DEPENDS robots/r1_description/mjcf/r1.xml robots/r1_description/urdf/r1.urdf
-      scripts/make_r1_dex3.py scripts/r1_skin.py ${G1_HAND_URDF}
-    COMMENT "R1 MuJoCo model with Dex3-1 hands")
-  add_custom_target(r1_dex3 ALL DEPENDS ${R1_DEX3}/r1_dex3.xml)
-  install(FILES ${R1_DEX3}/r1_dex3.xml DESTINATION ${ROBOTS}/r1_description/mjcf)
-  install(FILES ${R1_DEX3}/r1_dex3.urdf DESTINATION ${ROBOTS}/r1_description/urdf)
-  install(DIRECTORY ${R1_DEX3}/meshes/ DESTINATION ${ROBOTS}/r1_description/mjcf/meshes)
+  # R1 with Dex3-1 hands (mjcf/r1_dex3.xml, urdf/r1_dex3.urdf): its own meshes (stock colours,
+  # clipped wrists) plus the Unitree R1 meshes above and the G1 hand meshes
+  install(DIRECTORY robots/r1_description/mjcf/meshes_dex3/ DESTINATION ${ROBOTS}/r1_description/mjcf/meshes
+    PATTERN "LICENSE.md" EXCLUDE)
   install(DIRECTORY ${UROS}/g1_description/meshes/ DESTINATION ${ROBOTS}/r1_description/mjcf/meshes
     FILES_MATCHING PATTERN "*_hand_*_link.STL")
 
